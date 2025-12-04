@@ -1,7 +1,6 @@
 package com.library.security;
 
-import com.library.utils.JwtUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.library.util.JwtUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,8 +17,11 @@ import java.util.ArrayList;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtils jwtUtils;
+    private final JwtUtil jwtUtil;
+
+    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -31,17 +33,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(7);
 
             try {
-                if (jwtUtils.validateToken(token) && !jwtUtils.isTokenExpired(token)) {
-                    String username = jwtUtils.getUsernameFromToken(token);
-                    String role = jwtUtils.getRoleFromToken(token);
+                if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
+                    String username = jwtUtil.extractUsername(token);
 
                     UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+                            new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (Exception e) {
-                logger.error("JWT token验证失败", e);
+                System.err.println("JWT token验证失败: " + e.getMessage());
             }
         }
 

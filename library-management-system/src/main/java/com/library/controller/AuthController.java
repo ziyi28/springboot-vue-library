@@ -1,17 +1,12 @@
 package com.library.controller;
 
-import com.library.common.Result;
-import com.library.entity.Admin;
-import com.library.entity.User;
-import com.library.service.AdminService;
-import com.library.service.UserService;
-import com.library.utils.JwtUtils;
-import lombok.Data;
+import com.library.model.User;
+import com.library.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,71 +14,80 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Resource
-    private UserService userService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    @Resource
-    private AdminService adminService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
-    @Resource
-    private JwtUtils jwtUtils;
+    // 模拟用户存储（实际项目中应该使用数据库）
+    private static Map<String, User> userDatabase = new HashMap<>();
 
-    @Resource
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Data
-    public static class LoginRequest {
-        private String username;
-        private String password;
-        private String type; // user 或 admin
+    static {
+        // 添加默认管理员用户
+        User admin = new User("admin", "admin123", "admin@library.com");
+        admin.setRealName("系统管理员");
+        admin.setPassword(passwordEncoder.encode("admin123"));
+        userDatabase.put("admin", admin);
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         String username = loginRequest.getUsername();
         String password = loginRequest.getPassword();
-        String type = loginRequest.getType();
 
-        if ("user".equals(type)) {
-            User user = userService.findByUsername(username);
-            if (user != null && passwordEncoder.matches(password, user.getPassword())) {
-                if (user.getStatus() != 1) {
-                    return Result.error("账户已被禁用");
-                }
-
-                String token = jwtUtils.generateToken(username, "USER");
-                Map<String, Object> data = new HashMap<>();
-                data.put("token", token);
-                data.put("user", user);
-                data.put("role", "USER");
-                return Result.success(data);
-            }
-        } else if ("admin".equals(type)) {
-            Admin admin = adminService.findByUsername(username);
-            if (admin != null && passwordEncoder.matches(password, admin.getPassword())) {
-                if (admin.getStatus() != 1) {
-                    return Result.error("账户已被禁用");
-                }
-
-                String token = jwtUtils.generateToken(username, admin.getRole());
-                Map<String, Object> data = new HashMap<>();
-                data.put("token", token);
-                data.put("admin", admin);
-                data.put("role", admin.getRole());
-
-                // 更新最后登录时间
-                adminService.updateLastLoginTime(admin.getId());
-
-                return Result.success(data);
-            }
+        User user = userDatabase.get(username);
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
+            String token = jwtUtil.generateToken(username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("user", Map.of(
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "realName", user.getRealName()
+            ));
+            return ResponseEntity.ok(response);
         }
-
-        return Result.error("用户名或密码错误");
+        return ResponseEntity.badRequest().body("用户名或密码错误");
     }
 
     @PostMapping("/register")
-    public Result<String> register(@RequestBody User user) {
-        boolean success = userService.register(user);
-        return success ? Result.success("注册成功") : Result.error("注册失败，用户名已存在");
+    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+        String username = registerRequest.getUsername();
+        String password = registerRequest.getPassword();
+        String email = registerRequest.getEmail();
+
+        if (userDatabase.containsKey(username)) {
+            return ResponseEntity.badRequest().body("用户名已存在");
+        }
+
+        User newUser = new User(username, password, email);
+        newUser.setPassword(passwordEncoder.encode(password));
+        userDatabase.put(username, newUser);
+
+        return ResponseEntity.ok("注册成功");
+    }
+
+    public static class LoginRequest {
+        private String username;
+        private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+    }
+
+    public static class RegisterRequest {
+        private String username;
+        private String password;
+        private String email;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
     }
 }
