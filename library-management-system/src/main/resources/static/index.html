@@ -374,11 +374,12 @@
                                     <th>作者</th>
                                     <th>ISBN</th>
                                     <th>出版社</th>
-                                    <th>分类</th>
                                     <th>价格</th>
+                                    <th>分类</th>
                                     <th>总数量</th>
                                     <th>可借阅</th>
                                     <th>已借出</th>
+                                    <th>创建时间</th>
                                     <th>状态</th>
                                     <th>操作</th>
                                 </tr>
@@ -408,11 +409,105 @@
             <section id="records" class="content-section">
                 <div class="section-header">
                     <h1><i class="fas fa-history"></i> 借阅记录</h1>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="showBorrowForm()">
+                            <i class="fas fa-plus"></i> 借阅图书
+                        </button>
+                        <button class="btn btn-warning" onclick="loadOverdueRecords()">
+                            <i class="fas fa-exclamation-triangle"></i> 逾期记录
+                        </button>
+                        <button class="btn btn-info" onclick="loadDueSoonRecords()">
+                            <i class="fas fa-clock"></i> 即将到期
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshBorrowRecords()">
+                            <i class="fas fa-sync"></i> 刷新
+                        </button>
+                    </div>
                 </div>
-                <div class="coming-soon">
-                    <i class="fas fa-tools"></i>
-                    <h3>功能开发中...</h3>
-                    <p>借阅记录功能即将上线，敬请期待！</p>
+
+                <!-- 借阅表单 -->
+                <div id="borrowForm" class="form-container" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <h3><i class="fas fa-hand-holding"></i> 借阅图书</h3>
+                        </div>
+                        <form id="borrowBookForm" class="borrow-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="borrowUserId"><i class="fas fa-user"></i> 用户ID *</label>
+                                    <input type="number" id="borrowUserId" name="userId" required min="1" placeholder="请输入用户ID">
+                                </div>
+                                <div class="form-group">
+                                    <label for="borrowBookId"><i class="fas fa-book"></i> 图书ID *</label>
+                                    <input type="number" id="borrowBookId" name="bookId" required min="1" placeholder="请输入图书ID">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-check"></i> 确认借阅
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="hideBorrowForm()">
+                                    <i class="fas fa-times"></i> 取消
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 借阅记录列表 -->
+                <div id="borrowRecordsList" class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fas fa-list"></i> 借阅记录列表</h3>
+                        <div class="search-filters">
+                            <input type="text" id="recordSearch" placeholder="搜索用户名或书名...">
+                            <select id="recordStatusFilter">
+                                <option value="">全部状态</option>
+                                <option value="1">借阅中</option>
+                                <option value="2">已归还</option>
+                                <option value="3">逾期</option>
+                            </select>
+                            <button class="btn btn-sm" onclick="searchBorrowRecords()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户</th>
+                                    <th>图书</th>
+                                    <th>借阅日期</th>
+                                    <th>应还日期</th>
+                                    <th>归还日期</th>
+                                    <th>状态</th>
+                                    <th>续借次数</th>
+                                    <th>罚金</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="borrowRecordsTableBody">
+                                <tr>
+                                    <td colspan="10" class="text-center">
+                                        <i class="fas fa-inbox"></i> 暂无借阅记录
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页控件 -->
+                    <div class="pagination-controls">
+                        <button class="btn btn-sm" onclick="previousBorrowPage()" id="previousBorrowBtn">
+                            <i class="fas fa-chevron-left"></i> 上一页
+                        </button>
+                        <span id="borrowPageInfo">第 1 页，共 1 页</span>
+                        <button class="btn btn-sm" onclick="nextBorrowPage()" id="nextBorrowBtn">
+                            下一页 <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>

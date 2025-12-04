@@ -799,3 +799,228 @@ body {
         padding: 10px;
     }
 }
+
+/* ==================== 借阅记录相关样式 ==================== */
+
+/* 借阅记录状态样式 */
+.status-badge.borrowing {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-badge.returned {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-badge.overdue {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* 用户信息样式 */
+.user-info {
+    line-height: 1.4;
+}
+
+.user-info strong {
+    color: #333;
+    display: block;
+}
+
+.user-info small {
+    color: #666;
+    font-size: 0.85em;
+}
+
+/* 图书信息样式 */
+.book-info {
+    line-height: 1.4;
+}
+
+.book-info strong {
+    color: #333;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.book-info small {
+    color: #666;
+    font-size: 0.85em;
+}
+
+/* 搜索和筛选样式 */
+.search-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-filters input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-filters select {
+    min-width: 120px;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.modal-content p {
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.modal-content strong {
+    color: #495057;
+    margin-right: 8px;
+}
+
+.modal-actions {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* 借阅表单样式 */
+.borrow-form .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.borrow-form .form-group {
+    flex: 1;
+}
+
+.borrow-form .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+/* 分页控件增强样式 */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.pagination-controls button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .search-filters {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .search-filters input,
+    .search-filters select {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .borrow-form .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .modal-content {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .pagination-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+
+/* 表格动作按钮增强 */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* 借阅记录表格特定样式 */
+#borrowRecordsTableBody td {
+    vertical-align: top;
+}
+
+#borrowRecordsTableBody .action-buttons {
+    white-space: nowrap;
+}
+
+/* 特殊状态样式 */
+.overdue-warning {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.due-soon {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+/* 罚金样式 */
+.fine-amount {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.fine-amount.zero {
+    color: #28a745;
+}
+
+/* 续借次数样式 */
+.renew-count {
+    background-color: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    color: #495057;
+}

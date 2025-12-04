@@ -685,19 +685,15 @@ function renderBookTable(books) {
             <td>${book.publisher || '-'}</td>
             <td>¥${book.price || '0.00'}</td>
             <td>${book.category || '-'}</td>
+            <td>${book.totalCopies || 0}</td>
+            <td>${book.availableCopies || 0}</td>
+            <td>${book.borrowedCopies || 0}</td>
+            <td>${formatDate(book.createTime)}</td>
             <td>
-                <div class="copy-info">
-                    <span class="total">总数: ${book.totalCopies || 0}</span><br>
-                    <span class="available">可借: ${book.availableCopies || 0}</span><br>
-                    <span class="borrowed">已借: ${book.borrowedCopies || 0}</span>
-                </div>
-            </td>
-            <td>
-                <span class="status-badge ${book.status === 1 ? 'available' : 'unavailable'}">
+                <span class="status-badge ${book.status === 1 ? 'active' : 'inactive'}">
                     ${book.status === 1 ? '可借' : '不可借'}
                 </span>
             </td>
-            <td>${formatDate(book.createTime)}</td>
             <td>
                 <div class="action-buttons">
                     <button class="btn btn-sm btn-primary" onclick="editBook(${book.id})" title="编辑">
@@ -953,3 +949,462 @@ function showBookList() {
         loadBookList(); // 重新加载图书列表
     }
 }
+
+// ==================== 借阅记录功能 ====================
+
+// 借阅记录分页变量
+let borrowCurrentPage = 0;
+let borrowPageSize = 10;
+let borrowTotalPages = 0;
+
+// 显示借阅表单
+function showBorrowForm() {
+    // 切换到借阅记录页面
+    document.querySelector('[href="#records"]').click();
+
+    // 显示借阅表单
+    const formDiv = document.getElementById('borrowForm');
+    const listDiv = document.getElementById('borrowRecordsList');
+
+    if (formDiv) {
+        formDiv.style.display = 'block';
+        formDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (listDiv) {
+        listDiv.style.display = 'none';
+    }
+
+    // 设置表单提交事件
+    setupBorrowForm();
+}
+
+// 隐藏借阅表单
+function hideBorrowForm() {
+    const formDiv = document.getElementById('borrowForm');
+    const listDiv = document.getElementById('borrowRecordsList');
+
+    if (formDiv) {
+        formDiv.style.display = 'none';
+    }
+
+    if (listDiv) {
+        listDiv.style.display = 'block';
+    }
+
+    // 清空表单
+    document.getElementById('borrowBookForm').reset();
+}
+
+// 设置借阅表单
+function setupBorrowForm() {
+    const borrowForm = document.getElementById('borrowBookForm');
+    if (borrowForm) {
+        borrowForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            processBorrow();
+        });
+    }
+}
+
+// 处理借阅
+async function processBorrow() {
+    showLoading();
+
+    try {
+        const formData = new FormData(document.getElementById('borrowBookForm'));
+        const userId = formData.get('userId');
+        const bookId = formData.get('bookId');
+
+        const response = await fetch(`${API_BASE_URL}/borrow-records/borrow?userId=${userId}&bookId=${bookId}`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书借阅成功！', 'success');
+            hideBorrowForm();
+            refreshBorrowRecords();
+        } else {
+            showMessage(result.message || '借阅失败', 'error');
+        }
+    } catch (error) {
+        console.error('借阅图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 加载借阅记录
+async function loadBorrowRecords(page = 0, status = '') {
+    showLoading();
+
+    try {
+        let url = `${API_BASE_URL}/borrow-records?page=${page}&size=${borrowPageSize}`;
+        if (status) {
+            url = `${API_BASE_URL}/borrow-records/status/${status}?page=${page}&size=${borrowPageSize}`;
+        }
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBorrowRecordsTable(result.data);
+            updateBorrowPagination(result.currentPage, result.totalPages);
+            borrowCurrentPage = page;
+            borrowTotalPages = result.totalPages;
+        } else {
+            showMessage('加载借阅记录失败', 'error');
+        }
+    } catch (error) {
+        console.error('加载借阅记录错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 渲染借阅记录表格
+function renderBorrowRecordsTable(records) {
+    const tableBody = document.getElementById('borrowRecordsTableBody');
+
+    if (!tableBody) return;
+
+    if (records.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center">
+                    <i class="fas fa-inbox"></i> 暂无借阅记录
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = records.map(record => `
+        <tr>
+            <td>${record.id}</td>
+            <td>
+                <div class="user-info">
+                    <strong>${record.user ? record.user.username : 'N/A'}</strong><br>
+                    <small>${record.user ? record.user.realName || '-' : ''}</small>
+                </div>
+            </td>
+            <td>
+                <div class="book-info">
+                    <strong>${record.book ? record.book.title : 'N/A'}</strong><br>
+                    <small>${record.book ? record.book.author || '-' : ''}</small>
+                </div>
+            </td>
+            <td>${formatDate(record.borrowDate)}</td>
+            <td>${formatDate(record.dueDate)}</td>
+            <td>${record.returnDate ? formatDate(record.returnDate) : '-'}</td>
+            <td>
+                <span class="status-badge ${getBorrowStatusClass(record.status)}">
+                    ${getBorrowStatusText(record.status)}
+                </span>
+            </td>
+            <td>${record.renewCount || 0}</td>
+            <td>￥${record.fineAmount || '0.00'}</td>
+            <td>
+                <div class="action-buttons">
+                    ${record.status === 1 ? `
+                        <button class="btn btn-sm btn-success" onclick="returnBook(${record.id})" title="归还">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="renewBook(${record.id})" title="续借">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-sm btn-primary" onclick="viewBorrowRecord(${record.id})" title="详情">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 获取借阅状态样式类
+function getBorrowStatusClass(status) {
+    switch (status) {
+        case 1: return 'borrowing'; // 借阅中
+        case 2: return 'returned';  // 已归还
+        case 3: return 'overdue';   // 逾期
+        default: return '';
+    }
+}
+
+// 获取借阅状态文本
+function getBorrowStatusText(status) {
+    switch (status) {
+        case 1: return '借阅中';
+        case 2: return '已归还';
+        case 3: return '逾期';
+        default: return '未知';
+    }
+}
+
+// 更新借阅记录分页信息
+function updateBorrowPagination(current, total) {
+    const pageInfo = document.getElementById('borrowPageInfo');
+    const prevBtn = document.getElementById('previousBorrowBtn');
+    const nextBtn = document.getElementById('nextBorrowBtn');
+
+    if (pageInfo) {
+        pageInfo.textContent = `第 ${current + 1} 页，共 ${total} 页`;
+    }
+
+    if (prevBtn) {
+        prevBtn.disabled = current <= 0;
+    }
+
+    if (nextBtn) {
+        nextBtn.disabled = current >= total - 1;
+    }
+}
+
+// 上一页（借阅记录）
+function previousBorrowPage() {
+    const statusFilter = document.getElementById('recordStatusFilter').value;
+    if (borrowCurrentPage > 0) {
+        loadBorrowRecords(borrowCurrentPage - 1, statusFilter);
+    }
+}
+
+// 下一页（借阅记录）
+function nextBorrowPage() {
+    const statusFilter = document.getElementById('recordStatusFilter').value;
+    if (borrowCurrentPage < borrowTotalPages - 1) {
+        loadBorrowRecords(borrowCurrentPage + 1, statusFilter);
+    }
+}
+
+// 搜索借阅记录
+function searchBorrowRecords() {
+    const searchTerm = document.getElementById('recordSearch').value.trim();
+    const statusFilter = document.getElementById('recordStatusFilter').value;
+
+    if (!searchTerm && !statusFilter) {
+        loadBorrowRecords(0);
+        return;
+    }
+
+    searchBorrowRecordsByKeyword(searchTerm, statusFilter);
+}
+
+async function searchBorrowRecordsByKeyword(keyword, status) {
+    showLoading();
+
+    try {
+        let url = `${API_BASE_URL}/borrow-records/search?page=0&size=${borrowPageSize}`;
+        if (keyword) {
+            url += `&username=${encodeURIComponent(keyword)}&bookTitle=${encodeURIComponent(keyword)}`;
+        }
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBorrowRecordsTable(result.data);
+            updateBorrowPagination(0, 1);
+        } else {
+            showMessage('未找到匹配的借阅记录', 'warning');
+            renderBorrowRecordsTable([]);
+        }
+    } catch (error) {
+        console.error('搜索借阅记录错误:', error);
+        showMessage('搜索失败，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 加载逾期记录
+async function loadOverdueRecords() {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow-records/overdue?page=0&size=${borrowPageSize}`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBorrowRecordsTable(result.data);
+            updateBorrowPagination(0, result.totalPages);
+            showMessage(`找到 ${result.data.length} 条逾期记录`, 'warning');
+        } else {
+            showMessage('加载逾期记录失败', 'error');
+        }
+    } catch (error) {
+        console.error('加载逾期记录错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 加载即将到期记录
+async function loadDueSoonRecords() {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow-records/due-soon`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBorrowRecordsTable(result.data);
+            updateBorrowPagination(0, 1);
+            showMessage(`找到 ${result.data.length} 条即将到期记录`, 'info');
+        } else {
+            showMessage('加载即将到期记录失败', 'error');
+        }
+    } catch (error) {
+        console.error('加载即将到期记录错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 归还图书
+async function returnBook(recordId) {
+    if (!confirm('确定要归还这本图书吗？')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/return`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书归还成功！', 'success');
+            refreshBorrowRecords();
+        } else {
+            showMessage(result.message || '归还失败', 'error');
+        }
+    } catch (error) {
+        console.error('归还图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 续借图书
+async function renewBook(recordId) {
+    if (!confirm('确定要续借这本图书吗？')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/renew`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书续借成功！', 'success');
+            refreshBorrowRecords();
+        } else {
+            showMessage(result.message || '续借失败', 'error');
+        }
+    } catch (error) {
+        console.error('续借图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 查看借阅记录详情
+async function viewBorrowRecord(recordId) {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            const record = result.data;
+            showBorrowRecordDetails(record);
+        } else {
+            showMessage('获取借阅记录详情失败', 'error');
+        }
+    } catch (error) {
+        console.error('获取借阅记录详情错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 显示借阅记录详情
+function showBorrowRecordDetails(record) {
+    let detailsHTML = `
+        <div style="max-width: 500px; margin: 0 auto;">
+            <h3>借阅记录详情</h3>
+            <p><strong>记录ID:</strong> ${record.id}</p>
+            <p><strong>用户:</strong> ${record.user ? record.user.username : 'N/A'} (${record.user ? record.user.realName : ''})</p>
+            <p><strong>图书:</strong> ${record.book ? record.book.title : 'N/A'}</p>
+            <p><strong>作者:</strong> ${record.book ? record.book.author : 'N/A'}</p>
+            <p><strong>借阅日期:</strong> ${formatDate(record.borrowDate)}</p>
+            <p><strong>应还日期:</strong> ${formatDate(record.dueDate)}</p>
+            <p><strong>归还日期:</strong> ${record.returnDate ? formatDate(record.returnDate) : '未归还'}</p>
+            <p><strong>状态:</strong> <span class="status-badge ${getBorrowStatusClass(record.status)}">${getBorrowStatusText(record.status)}</span></p>
+            <p><strong>续借次数:</strong> ${record.renewCount || 0}</p>
+            <p><strong>罚金:</strong> ￥${record.fineAmount || '0.00'}</p>
+            ${record.notes ? `<p><strong>备注:</strong> ${record.notes}</p>` : ''}
+        </div>
+    `;
+
+    // 简单的模态框显示
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    modalOverlay.innerHTML = `
+        <div class="modal-content">
+            ${detailsHTML}
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">确定</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modalOverlay);
+}
+
+// 刷新借阅记录
+function refreshBorrowRecords() {
+    const statusFilter = document.getElementById('recordStatusFilter').value;
+    loadBorrowRecords(0, statusFilter);
+}
+
+// 状态筛选器变化事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('recordStatusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            const status = this.value;
+            loadBorrowRecords(0, status);
+        });
+    }
+
+    // 搜索框回车事件
+    const recordSearch = document.getElementById('recordSearch');
+    if (recordSearch) {
+        recordSearch.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBorrowRecords();
+            }
+        });
+    }
+});
