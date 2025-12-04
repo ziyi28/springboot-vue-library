@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class LibraryApplication {
 
     public static void main(String[] args) {
+        System.out.println("🚀 正在启动图书管理系统...");
         SpringApplication.run(LibraryApplication.class, args);
     }
 }

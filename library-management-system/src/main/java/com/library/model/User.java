@@ -1,21 +1,40 @@
 package com.library.model;
 
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
 public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(unique = true, nullable = false)
     private String username;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(unique = true)
     private String email;
+
     private String realName;
+
+    private String studentId;
+
+    private String department;
+
+    private String major;
+
     private Integer status;
 
-    public User() {}
+    @Column(name = "create_time")
+    private LocalDateTime createTime;
 
-    public User(String username, String password, String email) {
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.status = 1;
-    }
+    @Column(name = "update_time")
+    private LocalDateTime updateTime;
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -28,6 +47,16 @@ public class User {
     public void setEmail(String email) { this.email = email; }
     public String getRealName() { return realName; }
     public void setRealName(String realName) { this.realName = realName; }
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
+    public String getMajor() { return major; }
+    public void setMajor(String major) { this.major = major; }
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public LocalDateTime getUpdateTime() { return updateTime; }
+    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
 }

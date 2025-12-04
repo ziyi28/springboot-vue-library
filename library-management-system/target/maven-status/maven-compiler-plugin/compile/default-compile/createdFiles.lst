@@ -1,1 +1,7 @@
 com\library\LibraryApplication.class
+com\library\service\UserService.class
+com\library\model\User.class
+com\library\repository\UserRepository.class
+com\library\controller\UserController.class
+com\library\controller\SimpleController.class
+com\library\service\impl\UserServiceImpl.class
