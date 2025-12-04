@@ -8,7 +8,7 @@ public class SimpleController {
 
     @GetMapping("/")
     public String home() {
-        return "🎉 图书管理系统启动成功！";
+        return "redirect:/index.html";
     }
 
     @GetMapping("/health")
