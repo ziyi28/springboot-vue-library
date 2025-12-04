@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.library.mapper.BorrowRecordMapper">
+
+    <resultMap id="BorrowRecordDetailMap" type="com.library.entity.BorrowRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="book_id" property="bookId"/>
+        <result column="book_record_id" property="bookRecordId"/>
+        <result column="admin_id" property="adminId"/>
+        <result column="borrow_date" property="borrowDate"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="return_date" property="returnDate"/>
+        <result column="renew_count" property="renewCount"/>
+        <result column="status" property="status"/>
+        <result column="fine_amount" property="fineAmount"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <association property="user" javaType="com.library.entity.User">
+            <id column="user_id" property="id"/>
+            <result column="username" property="username"/>
+            <result column="real_name" property="realName"/>
+            <result column="student_id" property="studentId"/>
+        </association>
+        <association property="book" javaType="com.library.entity.Book">
+            <id column="book_id" property="id"/>
+            <result column="title" property="title"/>
+            <result column="author" property="author"/>
+            <result column="isbn" property="isbn"/>
+        </association>
+    </resultMap>
+
+    <select id="selectBorrowRecordsWithDetails" resultMap="BorrowRecordDetailMap">
+        SELECT br.*, u.username, u.real_name, u.student_id, b.title, b.author, b.isbn
+        FROM borrow_records br
+        LEFT JOIN users u ON br.user_id = u.id
+        LEFT JOIN books b ON br.book_id = b.id
+        WHERE br.is_deleted = 0
+        <if test="userId != null">
+            AND br.user_id = #{userId}
+        </if>
+        <if test="status != null">
+            AND br.status = #{status}
+        </if>
+        ORDER BY br.borrow_date DESC
+    </select>
+
+</mapper>
