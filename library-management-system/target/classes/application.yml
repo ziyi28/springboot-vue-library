@@ -5,9 +5,9 @@ spring:
   application:
     name: library-management-system
 
-  # H2 Database (for testing)
+  # H2 Database (file-based for data persistence)
   datasource:
-    url: jdbc:h2:mem:librarydb
+    url: jdbc:h2:file:./data/librarydb;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -16,7 +16,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
       show-sql: true
       format_sql: true
     properties:
