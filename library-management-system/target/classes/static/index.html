@@ -73,6 +73,14 @@
                         <span class="stat-value" id="totalBooks">0</span>
                         <span class="stat-label">图书总数</span>
                     </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="availableBooks">0</span>
+                        <span class="stat-label">可借图书</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="borrowedBooks">0</span>
+                        <span class="stat-label">已借图书</span>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -263,15 +271,136 @@
                 <div class="section-header">
                     <h1><i class="fas fa-book-open"></i> 图书管理</h1>
                     <div class="section-actions">
-                        <button class="btn btn-primary">
+                        <button class="btn btn-primary" onclick="showAddBook()">
                             <i class="fas fa-plus"></i> 添加图书
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshBookList()">
+                            <i class="fas fa-sync"></i> 刷新
                         </button>
                     </div>
                 </div>
-                <div class="coming-soon">
-                    <i class="fas fa-tools"></i>
-                    <h3>功能开发中...</h3>
-                    <p>图书管理功能即将上线，敬请期待！</p>
+
+                <!-- 图书注册表单 -->
+                <div id="bookRegistration" class="form-container" style="display: none;">
+                    <div class="form-card">
+                        <div class="form-header">
+                            <h3><i class="fas fa-plus"></i> 添加图书</h3>
+                        </div>
+                        <form id="bookForm" class="book-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookTitle"><i class="fas fa-book"></i> 书名 *</label>
+                                    <input type="text" id="bookTitle" name="title" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookAuthor"><i class="fas fa-user"></i> 作者 *</label>
+                                    <input type="text" id="bookAuthor" name="author" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookIsbn"><i class="fas fa-barcode"></i> ISBN *</label>
+                                    <input type="text" id="bookIsbn" name="isbn" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookPublisher"><i class="fas fa-building"></i> 出版社</label>
+                                    <input type="text" id="bookPublisher" name="publisher">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookPrice"><i class="fas fa-dollar-sign"></i> 价格</label>
+                                    <input type="number" id="bookPrice" name="price" step="0.01" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookCategory"><i class="fas fa-tag"></i> 分类</label>
+                                    <select id="bookCategory" name="category">
+                                        <option value="">请选择分类</option>
+                                        <option value="计算机">计算机</option>
+                                        <option value="文学">文学</option>
+                                        <option value="历史">历史</option>
+                                        <option value="科学">科学</option>
+                                        <option value="艺术">艺术</option>
+                                        <option value="其他">其他</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookTotalCopies"><i class="fas fa-boxes"></i> 总数量 *</label>
+                                    <input type="number" id="bookTotalCopies" name="totalCopies" required min="1">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="bookDescription"><i class="fas fa-align-left"></i> 描述</label>
+                                    <textarea id="bookDescription" name="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> 添加图书
+                                </button>
+                                <button type="reset" class="btn btn-secondary">
+                                    <i class="fas fa-undo"></i> 重置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 图书列表 -->
+                <div id="bookList" class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fas fa-list"></i> 图书列表</h3>
+                        <div class="search-box">
+                            <input type="text" id="bookSearch" placeholder="搜索图书...">
+                            <select id="bookStatusFilter">
+                                <option value="">全部状态</option>
+                                <option value="1">可用</option>
+                                <option value="0">不可用</option>
+                            </select>
+                            <button class="btn btn-sm" onclick="searchBooks()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>书名</th>
+                                    <th>作者</th>
+                                    <th>ISBN</th>
+                                    <th>出版社</th>
+                                    <th>分类</th>
+                                    <th>价格</th>
+                                    <th>总数量</th>
+                                    <th>可借阅</th>
+                                    <th>已借出</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookTableBody">
+                                <tr>
+                                    <td colspan="14" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> 加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button class="btn btn-sm" onclick="previousBookPage()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="bookPageInfo">第 1 页，共 1 页</span>
+                        <button class="btn btn-sm" onclick="nextBookPage()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
 

@@ -22,8 +22,4 @@ public class SimpleController {
         return "{\"message\":\"图书管理系统运行中\",\"status\":\"operational\",\"version\":\"1.0.0\"}";
     }
 
-    @GetMapping("/api/books")
-    public String books() {
-        return "{\"message\":\"图书管理功能待实现\",\"status\":\"pending\"}";
     }
-}

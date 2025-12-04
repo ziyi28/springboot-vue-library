@@ -2,6 +2,9 @@
 let currentPage = 0;
 let pageSize = 10;
 let totalPages = 0;
+let bookCurrentPage = 0;
+let bookPageSize = 10;
+let bookTotalPages = 0;
 
 // API基础URL
 const API_BASE_URL = '/api';
@@ -27,6 +30,12 @@ function initializeApp() {
 
     // 设置搜索功能
     setupSearch();
+
+    // 图书管理初始化
+    setupBookForm();
+
+    // 加载图书统计
+    loadBookStatistics();
 }
 
 // 设置导航菜单
@@ -545,3 +554,402 @@ window.addEventListener('online', function() {
 window.addEventListener('offline', function() {
     showMessage('网络连接已断开', 'warning');
 });
+
+// ==================== 图书管理功能 ====================
+
+// 设置图书表单
+function setupBookForm() {
+    const bookForm = document.getElementById('bookForm');
+    if (bookForm) {
+        bookForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            registerBook();
+        });
+    }
+
+    // 图书搜索功能
+    const bookSearchInput = document.getElementById('bookSearch');
+    if (bookSearchInput) {
+        bookSearchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchBooks();
+            }
+        });
+    }
+}
+
+// 注册图书
+async function registerBook() {
+    showLoading();
+
+    try {
+        const formData = new FormData(document.getElementById('bookForm'));
+        const bookData = {};
+
+        formData.forEach((value, key) => {
+            if (key === 'price') {
+                bookData[key] = parseFloat(value) || 0;
+            } else if (key === 'totalCopies' || key === 'availableCopies') {
+                bookData[key] = parseInt(value) || 1;
+            } else {
+                bookData[key] = value;
+            }
+        });
+
+        // 设置默认值
+        bookData.status = 1;
+        bookData.borrowedCopies = 0;
+
+        const response = await fetch(`${API_BASE_URL}/books`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bookData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书添加成功！', 'success');
+            document.getElementById('bookForm').reset();
+
+            // 刷新图书列表和统计数据
+            setTimeout(() => {
+                loadBookList();
+                loadBookStatistics();
+            }, 1000);
+        } else {
+            showMessage(result.message || '添加失败', 'error');
+        }
+    } catch (error) {
+        console.error('添加图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 加载图书列表
+async function loadBookList(page = 0) {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/books?page=${page}&size=${bookPageSize}&sortBy=id&sortDir=desc`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBookTable(result.data);
+            updateBookPagination(result.currentPage, result.totalPages);
+            bookCurrentPage = page;
+            bookTotalPages = result.totalPages;
+        } else {
+            showMessage('加载图书列表失败', 'error');
+        }
+    } catch (error) {
+        console.error('加载图书列表错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 渲染图书表格
+function renderBookTable(books) {
+    const tableBody = document.getElementById('bookTableBody');
+
+    if (!tableBody) return;
+
+    if (books.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="12" class="text-center">
+                    <i class="fas fa-inbox"></i> 暂无图书数据
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = books.map(book => `
+        <tr>
+            <td>${book.id}</td>
+            <td>
+                <div class="book-title">
+                    ${book.title || '-'}
+                    ${book.coverImage ? `<img src="${book.coverImage}" alt="封面" class="book-cover-mini" onerror="this.style.display='none'">` : ''}
+                </div>
+            </td>
+            <td>${book.author || '-'}</td>
+            <td>${book.isbn || '-'}</td>
+            <td>${book.publisher || '-'}</td>
+            <td>¥${book.price || '0.00'}</td>
+            <td>${book.category || '-'}</td>
+            <td>
+                <div class="copy-info">
+                    <span class="total">总数: ${book.totalCopies || 0}</span><br>
+                    <span class="available">可借: ${book.availableCopies || 0}</span><br>
+                    <span class="borrowed">已借: ${book.borrowedCopies || 0}</span>
+                </div>
+            </td>
+            <td>
+                <span class="status-badge ${book.status === 1 ? 'available' : 'unavailable'}">
+                    ${book.status === 1 ? '可借' : '不可借'}
+                </span>
+            </td>
+            <td>${formatDate(book.createTime)}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" onclick="editBook(${book.id})" title="编辑">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="borrowBook(${book.id})" title="借阅"
+                            ${book.availableCopies <= 0 || book.status !== 1 ? 'disabled' : ''}>
+                        <i class="fas fa-hand-holding"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="returnBook(${book.id})" title="归还"
+                            ${book.borrowedCopies <= 0 ? 'disabled' : ''}>
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteBook(${book.id})" title="删除">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 更新图书分页信息
+function updateBookPagination(current, total) {
+    const pageInfo = document.getElementById('bookPageInfo');
+    if (pageInfo) {
+        pageInfo.textContent = `第 ${current + 1} 页，共 ${total} 页`;
+    }
+}
+
+// 上一页（图书）
+function previousBookPage() {
+    if (bookCurrentPage > 0) {
+        loadBookList(bookCurrentPage - 1);
+    }
+}
+
+// 下一页（图书）
+function nextBookPage() {
+    if (bookCurrentPage < bookTotalPages - 1) {
+        loadBookList(bookCurrentPage + 1);
+    }
+}
+
+// 搜索图书
+function searchBooks() {
+    const searchTerm = document.getElementById('bookSearch').value.trim();
+
+    if (!searchTerm) {
+        loadBookList(0);
+        return;
+    }
+
+    searchBooksByKeyword(searchTerm);
+}
+
+async function searchBooksByKeyword(keyword) {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/books/search?keyword=${encodeURIComponent(keyword)}`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderBookTable(result.data);
+            updateBookPagination(0, 1);
+        } else {
+            showMessage('未找到匹配的图书', 'warning');
+            renderBookTable([]);
+        }
+    } catch (error) {
+        console.error('搜索图书错误:', error);
+        showMessage('搜索失败，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 编辑图书
+function editBook(bookId) {
+    showMessage('编辑功能开发中', 'info');
+}
+
+// 借阅图书
+async function borrowBook(bookId) {
+    if (!confirm('确定要借阅这本图书吗？')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/books/${bookId}/borrow`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书借阅成功！', 'success');
+            loadBookList(bookCurrentPage);
+            loadBookStatistics();
+        } else {
+            showMessage(result.message || '借阅失败', 'error');
+        }
+    } catch (error) {
+        console.error('借阅图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 归还图书
+async function returnBook(bookId) {
+    if (!confirm('确定要归还这本图书吗？')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/books/${bookId}/return`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书归还成功！', 'success');
+            loadBookList(bookCurrentPage);
+            loadBookStatistics();
+        } else {
+            showMessage(result.message || '归还失败', 'error');
+        }
+    } catch (error) {
+        console.error('归还图书错误:', error);
+        showMessage('网络错误，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 删除图书
+async function deleteBook(bookId) {
+    if (!confirm('确定要删除这本图书吗？此操作不可恢复。')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('图书删除成功', 'success');
+            loadBookList(bookCurrentPage);
+            loadBookStatistics();
+        } else {
+            showMessage(result.message || '删除失败', 'error');
+        }
+    } catch (error) {
+        console.error('删除图书错误:', error);
+        showMessage('删除失败，请稍后重试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 刷新图书列表
+function refreshBookList() {
+    loadBookList(bookCurrentPage);
+    loadBookStatistics();
+}
+
+// 加载图书统计
+async function loadBookStatistics() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/books/statistics`);
+        const result = await response.json();
+
+        if (result.success) {
+            updateBookStatistics(result.data);
+        }
+    } catch (error) {
+        console.error('加载图书统计错误:', error);
+    }
+}
+
+// 更新图书统计显示
+function updateBookStatistics(stats) {
+    const totalBooksEl = document.getElementById('totalBooks');
+    const availableBooksEl = document.getElementById('availableBooks');
+    const borrowedBooksEl = document.getElementById('borrowedBooks');
+
+    if (totalBooksEl) {
+        totalBooksEl.textContent = stats.totalBooks || 0;
+    }
+
+    if (availableBooksEl) {
+        availableBooksEl.textContent = stats.availableBooks || 0;
+    }
+
+    if (borrowedBooksEl) {
+        borrowedBooksEl.textContent = stats.borrowedBooks || 0;
+    }
+
+    // 更新用户数量（之前已经设置）
+    const totalUsersEl = document.getElementById('totalUsers');
+    if (totalUsersEl && totalUsersEl.textContent === '0') {
+        loadStatistics(); // 如果用户统计还没有加载，重新加载
+    }
+}
+
+// 显示添加图书表单
+function showAddBook() {
+    // 切换到图书管理页面
+    document.querySelector('[href="#books"]').click();
+
+    // 显示添加表单
+    const registrationDiv = document.getElementById('bookRegistration');
+    const listDiv = document.getElementById('bookList');
+
+    if (registrationDiv) {
+        registrationDiv.style.display = 'block';
+        registrationDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (listDiv) {
+        listDiv.style.display = 'none';
+    }
+}
+
+// 显示图书列表
+function showBookList() {
+    // 切换到图书管理页面
+    document.querySelector('[href="#books"]').click();
+
+    // 显示图书列表
+    const registrationDiv = document.getElementById('bookRegistration');
+    const listDiv = document.getElementById('bookList');
+
+    if (registrationDiv) {
+        registrationDiv.style.display = 'none';
+    }
+
+    if (listDiv) {
+        listDiv.style.display = 'block';
+        loadBookList(); // 重新加载图书列表
+    }
+}

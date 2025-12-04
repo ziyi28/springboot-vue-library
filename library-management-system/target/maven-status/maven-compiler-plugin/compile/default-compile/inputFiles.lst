@@ -1,7 +1,12 @@
 E:\项目\library-management-system\src\main\java\com\library\service\impl\UserServiceImpl.java
+E:\项目\library-management-system\src\main\java\com\library\controller\BookController.java
+E:\项目\library-management-system\src\main\java\com\library\service\impl\BookServiceImpl.java
+E:\项目\library-management-system\src\main\java\com\library\repository\BookRepository.java
 E:\项目\library-management-system\src\main\java\com\library\model\User.java
 E:\项目\library-management-system\src\main\java\com\library\controller\UserController.java
 E:\项目\library-management-system\src\main\java\com\library\LibraryApplication.java
 E:\项目\library-management-system\src\main\java\com\library\controller\SimpleController.java
+E:\项目\library-management-system\src\main\java\com\library\model\Book.java
+E:\项目\library-management-system\src\main\java\com\library\service\BookService.java
 E:\项目\library-management-system\src\main\java\com\library\repository\UserRepository.java
 E:\项目\library-management-system\src\main\java\com\library\service\UserService.java
