@@ -6,12 +6,243 @@ let bookCurrentPage = 0;
 let bookPageSize = 10;
 let bookTotalPages = 0;
 
+// 用户认证相关
+let currentUser = null;
+let userRole = null;
+let authToken = null;
+
 // API基础URL
 const API_BASE_URL = '/api';
 
+// 认证相关函数
+function checkAuthStatus() {
+    authToken = localStorage.getItem('authToken');
+    if (authToken) {
+        // 验证token有效性
+        fetch(`${API_BASE_URL}/auth/validate`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.valid) {
+                currentUser = data.username;
+                userRole = data.role;
+                showMainApp();
+                initializeApp();
+            } else {
+                logout();
+            }
+        })
+        .catch(error => {
+            console.error('Token验证失败:', error);
+            logout();
+        });
+    } else {
+        showLoginForm();
+        setupAuthForms();
+    }
+}
+
+function showLoginForm() {
+    document.getElementById('loginModal').style.display = 'block';
+    document.getElementById('registerModal').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+function showRegisterForm() {
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('registerModal').style.display = 'block';
+    document.getElementById('mainApp').style.display = 'none';
+}
+
+function showMainApp() {
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('registerModal').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+
+    // 更新用户信息显示
+    document.getElementById('currentUser').textContent = currentUser || '用户';
+    document.getElementById('currentUserRole').textContent = getRoleDisplayName(userRole);
+
+    // 根据角色显示/隐藏菜单项
+    updateNavigationForRole(userRole);
+}
+
+function getRoleDisplayName(role) {
+    switch(role) {
+        case 'ADMIN': return '系统管理员';
+        case 'LIBRARIAN': return '图书管理员';
+        case 'USER': return '普通用户';
+        default: return '用户';
+    }
+}
+
+function updateNavigationForRole(role) {
+    const usersNavItem = document.getElementById('usersNavItem');
+    const adminNavItem = document.getElementById('adminNavItem');
+
+    // 只有管理员和图书管理员可以看到用户管理
+    if (role === 'ADMIN' || role === 'LIBRARIAN') {
+        usersNavItem.style.display = 'block';
+    } else {
+        usersNavItem.style.display = 'none';
+    }
+
+    // 只有系统管理员可以看到管理员功能
+    if (role === 'ADMIN') {
+        adminNavItem.style.display = 'block';
+    } else {
+        adminNavItem.style.display = 'none';
+    }
+}
+
+function setupAuthForms() {
+    // 登录表单
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    authToken = data.token;
+                    currentUser = data.user.username;
+                    userRole = data.role;
+
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', currentUser);
+                    localStorage.setItem('userRole', userRole);
+
+                    showMessage('登录成功！', 'success');
+                    showMainApp();
+                    initializeApp();
+                } else {
+                    showMessage(data.message || '登录失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('登录错误:', error);
+                showMessage('登录失败，请检查网络连接', 'error');
+            });
+        });
+    }
+
+    // 注册表单
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showMessage('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            const formData = {
+                username: document.getElementById('regUsername').value,
+                password: password,
+                email: document.getElementById('regEmail').value,
+                realName: document.getElementById('regRealName').value,
+                studentId: document.getElementById('regStudentId').value,
+                department: document.getElementById('regDepartment').value,
+                major: document.getElementById('regMajor').value
+            };
+
+            fetch(`${API_BASE_URL}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    authToken = data.token;
+                    currentUser = data.user.username;
+                    userRole = data.role;
+
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', currentUser);
+                    localStorage.setItem('userRole', userRole);
+
+                    showMessage('注册成功！', 'success');
+                    showMainApp();
+                    initializeApp();
+                } else {
+                    showMessage(data.message || '注册失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('注册错误:', error);
+                showMessage('注册失败，请检查网络连接', 'error');
+            });
+        });
+    }
+}
+
+function logout() {
+    fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .finally(() => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('userRole');
+
+        authToken = null;
+        currentUser = null;
+        userRole = null;
+
+        showLoginForm();
+        setupAuthForms();
+        showMessage('已成功登出', 'info');
+    });
+}
+
+// HTTP请求辅助函数
+function apiRequest(url, options = {}) {
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+        }
+    };
+
+    return fetch(API_BASE_URL + url, { ...defaultOptions, ...options })
+        .then(response => {
+            if (response.status === 401) {
+                // Token过期或无效
+                logout();
+                throw new Error('认证失败，请重新登录');
+            }
+            return response.json();
+        });
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+    checkAuthStatus();
 });
 
 // 初始化应用
@@ -1408,3 +1639,243 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ==================== 管理员功能 ====================
+
+// 显示管理员统计
+function showAdminStats() {
+    showLoading();
+    apiRequest('/dashboard/overview')
+        .then(data => {
+            if (data.success) {
+                displayAdminStats(data.data);
+            }
+        })
+        .catch(error => {
+            showMessage('加载统计数据失败', 'error');
+        })
+        .finally(() => {
+            hideLoading();
+        });
+}
+
+// 显示管理员统计数据
+function displayAdminStats(stats) {
+    const statsGrid = document.getElementById('adminStatsGrid');
+    if (!statsGrid) return;
+
+    statsGrid.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${stats.totalUsers}</h3>
+                <p>总用户数</p>
+                <small>活跃: ${stats.activeUsers}</small>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${stats.totalBooks}</h3>
+                <p>总图书数</p>
+                <small>可借: ${stats.availableBooks}</small>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-hand-holding"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${stats.activeBorrows}</h3>
+                <p>活跃借阅</p>
+                <small>逾期: ${stats.overdueBorrows}</small>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-heart"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${stats.totalFavorites}</h3>
+                <p>总收藏数</p>
+                <small>图书: ${stats.favoritedBooks}</small>
+            </div>
+        </div>
+    `;
+}
+
+// 刷新管理员数据
+function refreshAdminData() {
+    showAdminStats();
+    loadSystemHealth();
+}
+
+// 显示创建管理员表单
+function showCreateAdmin() {
+    const formHtml = `
+        <div class="modal" style="display: block;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> 创建管理员</h3>
+                </div>
+                <div class="modal-body">
+                    <form id="createAdminForm">
+                        <div class="form-group">
+                            <label for="adminUsername">用户名 *</label>
+                            <input type="text" id="adminUsername" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminPassword">密码 *</label>
+                            <input type="password" id="adminPassword" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminEmail">邮箱</label>
+                            <input type="email" id="adminEmail" name="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="adminRealName">真实姓名</label>
+                            <input type="text" id="adminRealName" name="realName">
+                        </div>
+                        <div class="form-group">
+                            <label for="adminRole">角色</label>
+                            <select id="adminRole" name="role">
+                                <option value="LIBRARIAN">图书管理员</option>
+                                <option value="ADMIN">系统管理员</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminDepartment">部门</label>
+                            <input type="text" id="adminDepartment" name="department">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">创建</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', formHtml);
+
+    document.getElementById('createAdminForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createAdmin();
+    });
+}
+
+// 创建管理员
+function createAdmin() {
+    const formData = {
+        username: document.getElementById('adminUsername').value,
+        password: document.getElementById('adminPassword').value,
+        email: document.getElementById('adminEmail').value,
+        realName: document.getElementById('adminRealName').value,
+        role: document.getElementById('adminRole').value,
+        department: document.getElementById('adminDepartment').value
+    };
+
+    apiRequest('/admin', {
+        method: 'POST',
+        body: JSON.stringify(formData)
+    })
+        .then(data => {
+            if (data.success) {
+                showMessage('管理员创建成功', 'success');
+                closeModal();
+            } else {
+                showMessage(data.message || '创建失败', 'error');
+            }
+        })
+        .catch(error => {
+            showMessage('创建失败', 'error');
+        });
+}
+
+// 显示管理员列表
+function showAdminList() {
+    // 这里可以实现管理员列表的显示逻辑
+    showMessage('管理员列表功能开发中...', 'info');
+}
+
+// 显示禁用用户
+function showDisabledUsers() {
+    // 这里可以实现禁用用户的显示逻辑
+    showMessage('禁用用户功能开发中...', 'info');
+}
+
+// 导出用户数据
+function exportUserData() {
+    // 这里可以实现用户数据导出功能
+    showMessage('用户数据导出功能开发中...', 'info');
+}
+
+// 显示图书统计
+function showBookStats() {
+    // 这里可以实现图书统计的显示逻辑
+    showMessage('图书统计功能开发中...', 'info');
+}
+
+// 显示分类管理
+function showCategoryManagement() {
+    // 这里可以实现分类管理的显示逻辑
+    showMessage('分类管理功能开发中...', 'info');
+}
+
+// 显示逾期记录
+function showOverdueRecords() {
+    showLoading();
+    apiRequest('/dashboard/overdue')
+        .then(data => {
+            if (data.success) {
+                displayOverdueRecords(data.data);
+            }
+        })
+        .catch(error => {
+            showMessage('加载逾期记录失败', 'error');
+        })
+        .finally(() => {
+            hideLoading();
+        });
+}
+
+// 显示借阅统计
+function showBorrowStatistics() {
+    // 这里可以实现借阅统计的显示逻辑
+    showMessage('借阅统计功能开发中...', 'info');
+}
+
+// 加载系统健康状态
+function loadSystemHealth() {
+    apiRequest('/dashboard/health')
+        .then(data => {
+            if (data.success) {
+                displaySystemHealth(data.data);
+            }
+        })
+        .catch(error => {
+            console.error('加载系统健康状态失败:', error);
+        });
+}
+
+// 显示系统健康状态
+function displaySystemHealth(health) {
+    document.getElementById('dbStatus').textContent = health.database === 'healthy' ? '正常' : '异常';
+    document.getElementById('activeConnections').textContent = health.activeConnections || 0;
+    document.getElementById('systemLoad').textContent = '正常';
+    document.getElementById('diskUsage').textContent = health.diskUsage || '45%';
+}
+
+// 关闭模态框
+function closeModal() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (modal.style.display === 'block' && modal.id !== 'loginModal' && modal.id !== 'registerModal') {
+            modal.remove();
+        }
+    });
+}

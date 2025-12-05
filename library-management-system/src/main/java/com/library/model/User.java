@@ -2,6 +2,8 @@ package com.library.model;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -28,6 +30,10 @@ public class User {
 
     private String major;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.USER;
+
     private Integer status;
 
     @Column(name = "create_time")
@@ -35,6 +41,17 @@ public class User {
 
     @Column(name = "update_time")
     private LocalDateTime updateTime;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BorrowRecord> borrowRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Favorite> favorites = new ArrayList<>();
+
+    public enum UserRole {
+        ADMIN,    // 管理员
+        USER      // 普通用户
+    }
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -53,10 +70,30 @@ public class User {
     public void setDepartment(String department) { this.department = department; }
     public String getMajor() { return major; }
     public void setMajor(String major) { this.major = major; }
+
+    public UserRole getRole() { return role; }
+    public void setRole(UserRole role) { this.role = role; }
+
     public Integer getStatus() { return status; }
     public void setStatus(Integer status) { this.status = status; }
+
+    public List<BorrowRecord> getBorrowRecords() { return borrowRecords; }
+    public void setBorrowRecords(List<BorrowRecord> borrowRecords) { this.borrowRecords = borrowRecords; }
+
+    public List<Favorite> getFavorites() { return favorites; }
+    public void setFavorites(List<Favorite> favorites) { this.favorites = favorites; }
+
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+
+    // Business methods
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
+
+    public boolean isActive() {
+        return status != null && status == 1;
+    }
 }

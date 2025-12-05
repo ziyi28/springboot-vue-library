@@ -42,6 +42,11 @@ management:
     health:
       show-details: always
 
+# JWT配置
+jwt:
+  secret: librarySystemSecretKey2023ForTokenGeneration
+  expiration: 86400  # 24小时
+
 logging:
   level:
     com.library: DEBUG

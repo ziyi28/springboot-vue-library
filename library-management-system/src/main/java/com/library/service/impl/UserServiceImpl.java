@@ -6,6 +6,7 @@ import com.library.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Override
     public User register(User user) {
         // 检查用户名是否已存在
@@ -29,6 +33,9 @@ public class UserServiceImpl implements UserService {
         if (user.getEmail() != null && userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("邮箱已存在");
         }
+
+        // 加密密码
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         // 设置创建时间和更新时间
         user.setCreateTime(LocalDateTime.now());
