@@ -2,110 +2,211 @@ package com.library.controller;
 
 import com.library.model.Admin;
 import com.library.service.AdminService;
+import com.library.util.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import java.util.HashMap;
+import javax.servlet.http.HttpSession;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * 管理员控制器
- * 管理员账户管理功能
+ * 管理员管理控制器
  */
 @RestController
-@RequestMapping("/api/admin")
-@CrossOrigin(origins = "*", maxAge = 3600)
-@PreAuthorize("hasRole('ADMIN')")
+@RequestMapping("/api/admins")
+@CrossOrigin(origins = "*")
 public class AdminController {
 
     @Autowired
     private AdminService adminService;
 
     /**
-     * 创建管理员
-     */
-    @PostMapping
-    public ResponseEntity<?> createAdmin(@Valid @RequestBody Admin admin) {
-        try {
-            Admin createdAdmin = adminService.createAdmin(admin);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "管理员创建成功");
-            response.put("data", createdAdmin);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    /**
-     * 获取所有管理员
+     * 获取所有管理员（分页）
      */
     @GetMapping
-    public ResponseEntity<?> getAllAdmins(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Admin> admins = adminService.getAdminsByPage(page, size);
+    public ResponseEntity<ApiResponse<List<Admin>>> getAllAdmins(HttpSession session) {
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", admins.getContent());
-        response.put("currentPage", admins.getNumber());
-        response.put("totalItems", admins.getTotalElements());
-        response.put("totalPages", admins.getTotalPages());
-        response.put("pageSize", admins.getSize());
+        // 检查用户是否已登录且有管理员权限
+        Object userObj = session.getAttribute("user");
+        if (userObj == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
 
-        return ResponseEntity.ok(response);
+        try {
+            List<Admin> admins = adminService.getAllAdmins();
+            return ResponseEntity.ok(ApiResponse.success("获取管理员列表成功", admins));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取管理员列表失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 根据ID获取管理员
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getAdminById(@PathVariable Long id) {
-        Optional<Admin> admin = adminService.getAdminById(id);
-        if (admin.isPresent()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", admin.get());
-            return ResponseEntity.ok(response);
-        } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "管理员不存在");
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<ApiResponse<Admin>> getAdminById(@PathVariable Long id, HttpSession session) {
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
+        try {
+            Optional<Admin> admin = adminService.getAdminById(id);
+            if (admin.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success("获取管理员成功", admin.get()));
+            } else {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("管理员不存在"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取管理员失败: " + e.getMessage()));
         }
     }
 
     /**
-     * 更新管理员信息
+     * 创建管理员
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<Admin>> createAdmin(
+            @RequestBody Admin admin,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
+        try {
+            // 验证必填字段
+            if (admin.getUsername() == null || admin.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("用户名不能为空"));
+            }
+
+            if (admin.getPassword() == null || admin.getPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("密码不能为空"));
+            }
+
+            if (admin.getRealName() == null || admin.getRealName().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("真实姓名不能为空"));
+            }
+
+            // 检查用户名是否已存在
+            if (adminService.existsByUsername(admin.getUsername())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("用户名已存在"));
+            }
+
+            // 检查邮箱是否已存在
+            if (admin.getEmail() != null && adminService.existsByEmail(admin.getEmail())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("邮箱已存在"));
+            }
+
+            // 检查员工编号是否已存在
+            if (admin.getEmployeeId() != null && adminService.existsByEmployeeId(admin.getEmployeeId())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("员工编号已存在"));
+            }
+
+            Admin savedAdmin = adminService.createAdmin(admin);
+            return ResponseEntity.ok(ApiResponse.success("创建管理员成功", savedAdmin));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("创建管理员失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 更新管理员
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateAdmin(@PathVariable Long id, @Valid @RequestBody Admin admin) {
+    public ResponseEntity<ApiResponse<Admin>> updateAdmin(
+            @PathVariable Long id,
+            @RequestBody Admin admin,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
-            Admin updatedAdmin = adminService.updateAdmin(id, admin);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "管理员信息更新成功");
-            response.put("data", updatedAdmin);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            Optional<Admin> existingAdminOpt = adminService.getAdminById(id);
+            if (!existingAdminOpt.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("管理员不存在"));
+            }
+
+            Admin existingAdmin = existingAdminOpt.get();
+
+            // 验证必填字段
+            if (admin.getUsername() == null || admin.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("用户名不能为空"));
+            }
+
+            if (admin.getRealName() == null || admin.getRealName().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("真实姓名不能为空"));
+            }
+
+            // 检查用户名是否已被其他管理员使用
+            if (!existingAdmin.getUsername().equals(admin.getUsername()) &&
+                adminService.existsByUsername(admin.getUsername())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("用户名已存在"));
+            }
+
+            // 检查邮箱是否已被其他管理员使用
+            if (admin.getEmail() != null && !admin.getEmail().equals(existingAdmin.getEmail()) &&
+                adminService.existsByEmail(admin.getEmail())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("邮箱已存在"));
+            }
+
+            // 检查员工编号是否已被其他管理员使用
+            if (admin.getEmployeeId() != null && !admin.getEmployeeId().equals(existingAdmin.getEmployeeId()) &&
+                adminService.existsByEmployeeId(admin.getEmployeeId())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("员工编号已存在"));
+            }
+
+            // 更新字段
+            existingAdmin.setUsername(admin.getUsername());
+            existingAdmin.setRealName(admin.getRealName());
+            existingAdmin.setEmail(admin.getEmail());
+            existingAdmin.setEmployeeId(admin.getEmployeeId());
+            existingAdmin.setDepartment(admin.getDepartment());
+            existingAdmin.setRole(admin.getRole());
+            existingAdmin.setStatus(admin.getStatus());
+
+            // 只有提供了新密码才更新密码
+            if (admin.getPassword() != null && !admin.getPassword().trim().isEmpty()) {
+                existingAdmin.setPassword(admin.getPassword());
+            }
+
+            Admin updatedAdmin = adminService.updateAdmin(id, existingAdmin);
+            return ResponseEntity.ok(ApiResponse.success("更新管理员成功", updatedAdmin));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("更新管理员失败: " + e.getMessage()));
         }
     }
 
@@ -113,149 +214,131 @@ public class AdminController {
      * 删除管理员
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteAdmin(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> deleteAdmin(
+            @PathVariable Long id,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
+            Optional<Admin> adminOpt = adminService.getAdminById(id);
+            if (!adminOpt.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("管理员不存在"));
+            }
+
             adminService.deleteAdmin(id);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "管理员删除成功");
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.ok(ApiResponse.success("删除管理员成功", "管理员已删除"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("删除管理员失败: " + e.getMessage()));
         }
     }
 
     /**
-     * 禁用管理员
+     * 根据用户名查找管理员
      */
-    @PutMapping("/{id}/disable")
-    public ResponseEntity<?> disableAdmin(@PathVariable Long id) {
-        adminService.disableAdmin(id);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "管理员已禁用");
-        return ResponseEntity.ok(response);
-    }
+    @GetMapping("/username/{username}")
+    public ResponseEntity<ApiResponse<Admin>> getAdminByUsername(
+            @PathVariable String username,
+            HttpSession session) {
 
-    /**
-     * 启用管理员
-     */
-    @PutMapping("/{id}/enable")
-    public ResponseEntity<?> enableAdmin(@PathVariable Long id) {
-        adminService.enableAdmin(id);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "管理员已启用");
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 重置管理员密码
-     */
-    @PutMapping("/{id}/reset-password")
-    public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        String newPassword = request.get("newPassword");
-        if (newPassword == null || newPassword.trim().isEmpty()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "新密码不能为空");
-            return ResponseEntity.badRequest().body(response);
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
         }
 
-        adminService.resetPassword(id, newPassword);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "密码重置成功");
-        return ResponseEntity.ok(response);
+        try {
+            Optional<Admin> admin = adminService.getAdminByUsername(username);
+            if (admin.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success("获取管理员成功", admin.get()));
+            } else {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("管理员不存在"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取管理员失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 搜索管理员
      */
     @GetMapping("/search")
-    public ResponseEntity<?> searchAdmins(@RequestParam String keyword) {
-        List<Admin> admins = adminService.searchAdmins(keyword);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", admins);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<List<Admin>>> searchAdmins(
+            @RequestParam String keyword,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
+        try {
+            List<Admin> admins = adminService.searchAdmins(keyword);
+            return ResponseEntity.ok(ApiResponse.success("搜索管理员成功", admins));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("搜索管理员失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 获取管理员统计信息
      */
     @GetMapping("/stats")
-    public ResponseEntity<?> getAdminStats() {
-        long totalAdmins = adminService.getTotalAdminCount();
-        long activeAdmins = adminService.getActiveAdminCount();
-        long adminRoleCount = adminService.getAdminCountByRole(Admin.AdminRole.ADMIN);
-        long librarianRoleCount = adminService.getAdminCountByRole(Admin.AdminRole.LIBRARIAN);
+    public ResponseEntity<ApiResponse<Object>> getAdminStats(HttpSession session) {
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
 
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalAdmins", totalAdmins);
-        stats.put("activeAdmins", activeAdmins);
-        stats.put("inactiveAdmins", totalAdmins - activeAdmins);
-        stats.put("adminRoleCount", adminRoleCount);
-        stats.put("librarianRoleCount", librarianRoleCount);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", stats);
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 创建系统管理员
-     */
-    @PostMapping("/create-system-admin")
-    public ResponseEntity<?> createSystemAdmin(@RequestBody Map<String, String> request) {
         try {
-            String username = request.get("username");
-            String password = request.get("password");
-            String email = request.get("email");
-            String realName = request.get("realName");
-
-            Admin admin = adminService.createSystemAdmin(username, password, email, realName);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "系统管理员创建成功");
-            response.put("data", admin);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            Object stats = adminService.getAdminStats();
+            return ResponseEntity.ok(ApiResponse.success("获取管理员统计成功", stats));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取管理员统计失败: " + e.getMessage()));
         }
     }
 
     /**
-     * 创建图书管理员
+     * 更新管理员登录时间
      */
-    @PostMapping("/create-librarian")
-    public ResponseEntity<?> createLibrarian(@RequestBody Map<String, String> request) {
-        try {
-            String username = request.get("username");
-            String password = request.get("password");
-            String email = request.get("email");
-            String realName = request.get("realName");
-            String department = request.get("department");
+    @PostMapping("/{id}/login")
+    public ResponseEntity<ApiResponse<Admin>> updateLoginTime(
+            @PathVariable Long id,
+            HttpSession session) {
 
-            Admin admin = adminService.createLibrarian(username, password, email, realName, department);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "图书管理员创建成功");
-            response.put("data", admin);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
+        try {
+            Optional<Admin> adminOpt = adminService.getAdminById(id);
+            if (!adminOpt.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("管理员不存在"));
+            }
+
+            adminService.updateLastLoginTime(id);
+            Optional<Admin> updatedAdmin = adminService.getAdminById(id);
+
+            return ResponseEntity.ok(ApiResponse.success("更新登录时间成功", updatedAdmin.get()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("更新登录时间失败: " + e.getMessage()));
         }
     }
 }

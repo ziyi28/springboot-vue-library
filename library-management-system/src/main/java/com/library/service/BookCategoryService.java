@@ -1,88 +1,47 @@
 package com.library.service;
 
 import com.library.model.BookCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 图书分类服务接口
+ */
 public interface BookCategoryService {
 
-    // 基础CRUD操作
-    BookCategory createCategory(BookCategory category);
-    Optional<BookCategory> getCategoryById(Long id);
-    List<BookCategory> getAllCategories();
-    BookCategory updateCategory(Long id, BookCategory category);
-    void deleteCategory(Long id);
+    // 基本CRUD操作
+    BookCategory save(BookCategory category);
 
-    // 查询操作
-    Optional<BookCategory> getCategoryByName(String categoryName);
-    Optional<BookCategory> getCategoryByCode(String code);
-    List<BookCategory> getRootCategories();
-    List<BookCategory> getSubCategories(Long parentId);
-    List<BookCategory> getActiveCategories();
-    List<BookCategory> getCategoriesByStatus(Boolean status);
+    Optional<BookCategory> findById(Long id);
 
-    // 层级结构操作
-    List<BookCategory> getCategoryTree();
-    List<BookCategory> getActiveRootCategories();
-    List<BookCategory> getActiveSubCategories(Long parentId);
-    boolean hasSubCategories(Long categoryId);
+    Page<BookCategory> findAll(Pageable pageable);
 
-    // 搜索和筛选
-    List<BookCategory> searchCategories(String keyword);
-    List<BookCategory> getCategoriesByNameContaining(String name);
-    List<BookCategory> getCategoriesByOrder();
+    List<BookCategory> findAllActive();
 
-    // 状态管理
-    void enableCategory(Long categoryId);
-    void disableCategory(Long categoryId);
-    List<BookCategory> getDisabledCategories();
+    void deleteById(Long id);
 
-    // 业务统计
-    long getTotalCategoryCount();
-    long getActiveCategoryCount();
-    long getDisabledCategoryCount();
-    List<Object[]> getBookCountByCategory();
-    List<Object[]> getCategoryStatusCount();
-    List<Object[]> getPopularCategories();
-    List<BookCategory> getEmptyCategories();
-    List<BookCategory> getCategoriesWithBooks();
-
-    // 验证操作
+    // 查询方法
     boolean existsByCategoryName(String categoryName);
+
     boolean existsByCode(String code);
-    boolean isCategoryNameAvailable(String categoryName);
-    boolean isCodeAvailable(String code);
-    boolean canDeleteCategory(Long categoryId);
 
-    // 业务操作
-    BookCategory createRootCategory(String categoryName, String code, String description);
-    BookCategory createSubCategory(String categoryName, String code, String description, Long parentId);
-    void moveSubCategory(Long categoryId, Long newParentId);
-    void updateCategoryOrder(Long categoryId, Integer sortOrder);
+    List<BookCategory> findByCategoryNameContaining(String keyword);
 
-    // 图书关联操作
-    long getBookCountByCategory(Long categoryId);
-    boolean hasBooksInCategory(Long categoryId);
-    List<BookCategory> getCategoriesWithBookCount();
+    Page<BookCategory> searchCategories(String keyword, Pageable pageable);
 
-    // 分页查询
-    List<BookCategory> getCategoriesByPage(int page, int size);
-    List<BookCategory> getActiveCategoriesByPage(int page, int size);
+    // 业务方法
+    boolean hasBooks(Long categoryId);
 
-    // 批量操作
-    void enableCategories(List<Long> categoryIds);
-    void disableCategories(List<Long> categoryIds);
-    void deleteCategories(List<Long> categoryIds);
+    Object getCategoryStats();
 
-    // 导入导出操作
-    String exportCategoriesToCsv();
-    List<BookCategory> importCategoriesFromCsv(String csvContent);
+    List<BookCategory> findByParentId(Long parentId);
 
-    // 树形结构处理
-    List<BookCategory> buildCategoryHierarchy();
-    List<BookCategory> getChildrenCategories(Long categoryId);
-    List<BookCategory> getParentCategories(Long categoryId);
-    int getCategoryDepth(Long categoryId);
-    String getCategoryPath(Long categoryId);
+    List<BookCategory> findRootCategories();
+
+    long countCategories();
+
+    long countActiveCategories();
 }

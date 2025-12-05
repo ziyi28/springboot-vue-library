@@ -68,4 +68,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     // 按分类统计图书数量
     @Query("SELECT b.category, COUNT(b) FROM Book b WHERE b.status = 1 GROUP BY b.category")
     List<Object[]> countBooksByCategory();
+
+    // 根据分类ID统计图书数量
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.category.id = :categoryId AND b.status = 1")
+    long countByCategoryId(@Param("categoryId") Long categoryId);
 }

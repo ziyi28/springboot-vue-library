@@ -61,4 +61,7 @@ public interface AdminService {
     // 分页查询
     List<Admin> getAdminsByPage(int page, int size);
     List<Admin> getAdminsByRoleAndStatus(AdminRole role, Boolean status);
+
+    // 统计信息
+    Object getAdminStats();
 }

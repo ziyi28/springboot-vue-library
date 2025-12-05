@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单登录测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>📚 图书管理系统登录测试</h1>
+
+    <div id="status" class="message info">检查系统状态中...</div>
+    <div id="result" class="message" style="display: none;"></div>
+
+    <form id="loginForm">
+        <h2>登录测试</h2>
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" name="username" value="admin" required>
+        </div>
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" name="password" value="admin123" required>
+        </div>
+        <button type="submit">登录</button>
+    </form>
+
+    <div style="margin-top: 20px;">
+        <h3>测试账户:</h3>
+        <p><strong>管理员:</strong> admin / admin123</p>
+        <p><strong>图书管理员:</strong> librarian / admin123</p>
+        <p><strong>学生:</strong> student1 / 123456</p>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h3>测试链接:</h3>
+        <p><a href="/api/test/status" target="_blank">系统状态</a></p>
+        <p><a href="/api/test/accounts" target="_blank">测试账户</a></p>
+        <p><a href="/login.html" target="_blank">完整登录页面</a></p>
+        <p><a href="/h2-console" target="_blank">H2数据库控制台</a></p>
+    </div>
+
+    <script>
+        const API_BASE = '/api/basic-auth';
+        const TEST_API_BASE = '/api/test';
+
+        // 检查系统状态
+        function checkStatus() {
+            const statusDiv = document.getElementById('status');
+
+            fetch(`${TEST_API_BASE}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.className = 'message success';
+                        statusDiv.innerHTML = `✅ 系统正常！管理员: ${data.adminCount}, 用户: ${data.userCount}, 图书: ${data.bookCount}`;
+                    } else {
+                        statusDiv.className = 'message error';
+                        statusDiv.innerHTML = `❌ 系统异常: ${data.message}`;
+                    }
+                })
+                .catch(error => {
+                    statusDiv.className = 'message error';
+                    statusDiv.innerHTML = `❌ 连接失败: ${error.message}`;
+                });
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `message ${type}`;
+            resultDiv.style.display = 'block';
+        }
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            showMessage('登录中...', 'info');
+
+            fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(`✅ 登录成功！角色: ${data.role}, 用户: ${data.user.realName}`, 'success');
+                    console.log('登录成功:', data);
+                } else {
+                    showMessage(`❌ 登录失败: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('登录错误:', error);
+                showMessage(`❌ 登录错误: ${error.message}`, 'error');
+            });
+        });
+
+        // 页面加载时检查状态
+        window.addEventListener('load', function() {
+            checkStatus();
+        });
+    </script>
+</body>
+</html>

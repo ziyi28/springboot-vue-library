@@ -2,57 +2,83 @@ package com.library.controller;
 
 import com.library.model.BookCategory;
 import com.library.service.BookCategoryService;
+import com.library.util.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import java.util.HashMap;
+import javax.servlet.http.HttpSession;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * 图书分类控制器
- * 管理图书分类的增删改查功能
+ * 图书分类管理控制器
  */
 @RestController
-@RequestMapping("/api/categories")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@RequestMapping("/api/book-categories")
+@CrossOrigin(origins = "*")
 public class BookCategoryController {
 
     @Autowired
     private BookCategoryService bookCategoryService;
 
     /**
-     * 获取所有分类
+     * 获取所有分类（分页）
      */
     @GetMapping
-    public ResponseEntity<?> getAllCategories() {
-        List<BookCategory> categories = bookCategoryService.getAllCategories();
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", categories);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Page<BookCategory>>> getAllCategories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "sortOrder") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        try {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+            Page<BookCategory> categories = bookCategoryService.findAll(pageable);
+            return ResponseEntity.ok(ApiResponse.success("获取分类列表成功", categories));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取分类列表失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取所有分类（不分页）
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<BookCategory>>> getAllCategories() {
+        try {
+            List<BookCategory> categories = bookCategoryService.findAllActive();
+            return ResponseEntity.ok(ApiResponse.success("获取所有分类成功", categories));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取分类列表失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 根据ID获取分类
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryById(@PathVariable Long id) {
-        Optional<BookCategory> category = bookCategoryService.getCategoryById(id);
-        if (category.isPresent()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", category.get());
-            return ResponseEntity.ok(response);
-        } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "分类不存在");
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<ApiResponse<BookCategory>> getCategoryById(@PathVariable Long id) {
+        try {
+            Optional<BookCategory> category = bookCategoryService.findById(id);
+            if (category.isPresent()) {
+                return ResponseEntity.ok(ApiResponse.success("获取分类成功", category.get()));
+            } else {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("分类不存在"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取分类失败: " + e.getMessage()));
         }
     }
 
@@ -60,20 +86,41 @@ public class BookCategoryController {
      * 创建分类
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> createCategory(@Valid @RequestBody BookCategory category) {
+    public ResponseEntity<ApiResponse<BookCategory>> createCategory(
+            @RequestBody BookCategory category,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
-            BookCategory createdCategory = bookCategoryService.createCategory(category);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "分类创建成功");
-            response.put("data", createdCategory);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            // 验证必填字段
+            if (category.getCategoryName() == null || category.getCategoryName().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类名称不能为空"));
+            }
+
+            // 检查分类名称是否已存在
+            if (bookCategoryService.existsByCategoryName(category.getCategoryName())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类名称已存在"));
+            }
+
+            // 检查分类代码是否已存在
+            if (category.getCode() != null && bookCategoryService.existsByCode(category.getCode())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类代码已存在"));
+            }
+
+            BookCategory savedCategory = bookCategoryService.save(category);
+            return ResponseEntity.ok(ApiResponse.success("创建分类成功", savedCategory));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("创建分类失败: " + e.getMessage()));
         }
     }
 
@@ -81,20 +128,60 @@ public class BookCategoryController {
      * 更新分类
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody BookCategory category) {
+    public ResponseEntity<ApiResponse<BookCategory>> updateCategory(
+            @PathVariable Long id,
+            @RequestBody BookCategory category,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
-            BookCategory updatedCategory = bookCategoryService.updateCategory(id, category);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "分类更新成功");
-            response.put("data", updatedCategory);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            Optional<BookCategory> existingCategoryOpt = bookCategoryService.findById(id);
+            if (!existingCategoryOpt.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("分类不存在"));
+            }
+
+            BookCategory existingCategory = existingCategoryOpt.get();
+
+            // 验证必填字段
+            if (category.getCategoryName() == null || category.getCategoryName().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类名称不能为空"));
+            }
+
+            // 检查分类名称是否已被其他分类使用
+            if (!existingCategory.getCategoryName().equals(category.getCategoryName()) &&
+                bookCategoryService.existsByCategoryName(category.getCategoryName())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类名称已存在"));
+            }
+
+            // 检查分类代码是否已被其他分类使用
+            if (category.getCode() != null && !category.getCode().equals(existingCategory.getCode()) &&
+                bookCategoryService.existsByCode(category.getCode())) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("分类代码已存在"));
+            }
+
+            // 更新字段
+            existingCategory.setCategoryName(category.getCategoryName());
+            existingCategory.setCode(category.getCode());
+            existingCategory.setDescription(category.getDescription());
+            existingCategory.setParentId(category.getParentId());
+            existingCategory.setSortOrder(category.getSortOrder());
+            existingCategory.setStatus(category.getStatus());
+
+            BookCategory updatedCategory = bookCategoryService.save(existingCategory);
+            return ResponseEntity.ok(ApiResponse.success("更新分类成功", updatedCategory));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("更新分类失败: " + e.getMessage()));
         }
     }
 
@@ -102,138 +189,68 @@ public class BookCategoryController {
      * 删除分类
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
-        try {
-            bookCategoryService.deleteCategory(id);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "分类删除成功");
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+    public ResponseEntity<ApiResponse<String>> deleteCategory(
+            @PathVariable Long id,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
         }
-    }
 
-    /**
-     * 启用分类
-     */
-    @PutMapping("/{id}/enable")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> enableCategory(@PathVariable Long id) {
-        bookCategoryService.enableCategory(id);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "分类已启用");
-        return ResponseEntity.ok(response);
-    }
+        try {
+            Optional<BookCategory> categoryOpt = bookCategoryService.findById(id);
+            if (!categoryOpt.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("分类不存在"));
+            }
 
-    /**
-     * 禁用分类
-     */
-    @PutMapping("/{id}/disable")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> disableCategory(@PathVariable Long id) {
-        bookCategoryService.disableCategory(id);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "分类已禁用");
-        return ResponseEntity.ok(response);
-    }
+            // 检查是否有图书使用该分类
+            if (bookCategoryService.hasBooks(id)) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("该分类下还有图书，无法删除"));
+            }
 
-    /**
-     * 获取启用的分类
-     */
-    @GetMapping("/enabled")
-    public ResponseEntity<?> getEnabledCategories() {
-        List<BookCategory> categories = bookCategoryService.getEnabledCategories();
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", categories);
-        return ResponseEntity.ok(response);
-    }
+            bookCategoryService.deleteById(id);
+            return ResponseEntity.ok(ApiResponse.success("删除分类成功", "分类已删除"));
 
-    /**
-     * 根据父级ID获取子分类
-     */
-    @GetMapping("/parent/{parentId}")
-    public ResponseEntity<?> getCategoriesByParentId(@PathVariable Long parentId) {
-        List<BookCategory> categories = bookCategoryService.getCategoriesByParentId(parentId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", categories);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 获取顶级分类（父级ID为null）
-     */
-    @GetMapping("/top-level")
-    public ResponseEntity<?> getTopLevelCategories() {
-        List<BookCategory> categories = bookCategoryService.getTopLevelCategories();
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", categories);
-        return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("删除分类失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 搜索分类
      */
     @GetMapping("/search")
-    public ResponseEntity<?> searchCategories(@RequestParam String keyword) {
-        List<BookCategory> categories = bookCategoryService.searchCategories(keyword);
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", categories);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<Page<BookCategory>>> searchCategories(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<BookCategory> categories = bookCategoryService.searchCategories(keyword, pageable);
+            return ResponseEntity.ok(ApiResponse.success("搜索分类成功", categories));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("搜索分类失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 获取分类统计信息
      */
     @GetMapping("/stats")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> getCategoryStats() {
-        long totalCategories = bookCategoryService.getTotalCategoryCount();
-        long enabledCategories = bookCategoryService.getEnabledCategoryCount();
-        long topLevelCategories = bookCategoryService.getTopLevelCategoryCount();
-
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalCategories", totalCategories);
-        stats.put("enabledCategories", enabledCategories);
-        stats.put("disabledCategories", totalCategories - enabledCategories);
-        stats.put("topLevelCategories", topLevelCategories);
-        stats.put("subCategories", totalCategories - topLevelCategories);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", stats);
-
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * 重新排序分类
-     */
-    @PutMapping("/reorder")
-    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
-    public ResponseEntity<?> reorderCategories(@RequestBody Map<String, Object> request) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> categoryOrders = (List<Map<String, Object>>) request.get("categories");
-
-        for (Map<String, Object> categoryOrder : categoryOrders) {
-            Long id = Long.valueOf(categoryOrder.get("id").toString());
-            Integer sortOrder = (Integer) categoryOrder.get("sortOrder");
-            bookCategoryService.updateCategorySort(id, sortOrder);
+    public ResponseEntity<ApiResponse<Object>> getCategoryStats() {
+        try {
+            Object stats = bookCategoryService.getCategoryStats();
+            return ResponseEntity.ok(ApiResponse.success("获取分类统计成功", stats));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取分类统计失败: " + e.getMessage()));
         }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "分类排序更新成功");
-        return ResponseEntity.ok(response);
     }
 }

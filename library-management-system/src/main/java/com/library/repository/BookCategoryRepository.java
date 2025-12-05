@@ -1,6 +1,8 @@
 package com.library.repository;
 
 import com.library.model.BookCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -88,4 +90,19 @@ public interface BookCategoryRepository extends JpaRepository<BookCategory, Long
            "GROUP BY c.id, c.categoryName " +
            "ORDER BY bookCount DESC")
     List<Object[]> findPopularCategories();
+
+    // 根据分类名称模糊查找（忽略大小写）
+    List<BookCategory> findByCategoryNameContainingIgnoreCaseOrderByCategoryNameAsc(String keyword);
+
+    // 分页搜索分类
+    Page<BookCategory> findByCategoryNameContainingIgnoreCase(String keyword, Pageable pageable);
+
+    // 查找启用的分类并按排序顺序排序
+    List<BookCategory> findByStatusTrueOrderBySortOrderAsc();
+
+    // 查找根分类并按排序顺序排序
+    List<BookCategory> findByParentIdIsNullOrderBySortOrderAsc();
+
+    // 查找启用分类数量
+    long countByStatusTrue();
 }

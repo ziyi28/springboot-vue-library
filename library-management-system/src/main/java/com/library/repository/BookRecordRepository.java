@@ -27,19 +27,7 @@ public interface BookRecordRepository extends JpaRepository<BookRecord, Long> {
     // 根据状态查找副本
     List<BookRecord> findByStatus(CopyStatus status);
 
-    // 查找所有可借的副本
-    List<BookRecord> findByStatus(CopyStatus status);
-
-    // 查找所有已借出的副本
-    List<BookRecord> findByStatus(CopyStatus status);
-
-    // 根据状态查找副本（更通用）
-    List<BookRecord> findByStatus(CopyStatus status);
-
     // 根据图书ID和状态查找副本
-    List<BookRecord> findByBookIdAndStatus(Long bookId, CopyStatus status);
-
-    // 查找某本图书的可借副本
     List<BookRecord> findByBookIdAndStatus(Long bookId, CopyStatus status);
 
     // 根据馆藏位置查找副本
@@ -94,15 +82,6 @@ public interface BookRecordRepository extends JpaRepository<BookRecord, Long> {
 
     // 查找没有位置的副本
     List<BookRecord> findByLocationIsNull();
-
-    // 查找需要维护的副本（状态为MAINTENANCE）
-    List<BookRecord> findByStatus(CopyStatus status);
-
-    // 查找损坏的副本（状态为DAMAGED）
-    List<BookRecord> findByStatus(CopyStatus status);
-
-    // 查找遗失的副本（状态为LOST）
-    List<BookRecord> findByStatus(CopyStatus status);
 
     // 统计各位置的副本数量
     @Query("SELECT r.location, COUNT(r) FROM BookRecord r WHERE r.location IS NOT NULL GROUP BY r.location")

@@ -2,6 +2,7 @@ package com.library.controller;
 
 import com.library.model.Book;
 import com.library.service.BookService;
+import com.library.util.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,14 +11,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import javax.servlet.http.HttpSession;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/books")
-@CrossOrigin(origins = "*", maxAge = 3600)
+@CrossOrigin(origins = "*")
 public class BookController {
 
     @Autowired
@@ -27,19 +27,22 @@ public class BookController {
      * 添加图书
      */
     @PostMapping
-    public ResponseEntity<?> addBook(@RequestBody Book book) {
+    public ResponseEntity<ApiResponse<Book>> addBook(
+            @RequestBody Book book,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
             Book savedBook = bookService.addBook(book);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "图书添加成功");
-            response.put("data", savedBook);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("图书添加成功", savedBook));
         } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest("添加图书失败: " + e.getMessage()));
         }
     }
 
@@ -47,20 +50,24 @@ public class BookController {
      * 更新图书信息
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBook(@PathVariable Long id, @RequestBody Book book) {
+    public ResponseEntity<ApiResponse<Book>> updateBook(
+            @PathVariable Long id,
+            @RequestBody Book book,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         book.setId(id);
         try {
             Book updatedBook = bookService.updateBook(book);
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "图书信息更新成功");
-            response.put("data", updatedBook);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("图书信息更新成功", updatedBook));
         } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest("更新图书失败: " + e.getMessage()));
         }
     }
 
@@ -68,25 +75,27 @@ public class BookController {
      * 删除图书
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteBook(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> deleteBook(
+            @PathVariable Long id,
+            HttpSession session) {
+
+        // 检查用户是否已登录
+        if (session.getAttribute("user") == null) {
+            return ResponseEntity.status(401)
+                .body(ApiResponse.unauthorized("请先登录"));
+        }
+
         try {
             boolean deleted = bookService.deleteBook(id);
             if (deleted) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "图书删除成功");
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success("图书删除成功", "删除成功"));
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "图书不存在");
-                return ResponseEntity.notFound().build();
+                return ResponseEntity.status(404)
+                    .body(ApiResponse.error("图书不存在"));
             }
         } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(e.getMessage()));
         }
     }
 
@@ -94,18 +103,13 @@ public class BookController {
      * 根据ID查找图书
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getBookById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Book>> getBookById(@PathVariable Long id) {
         Optional<Book> book = bookService.findById(id);
         if (book.isPresent()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", book.get());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("获取图书成功", book.get()));
         } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "图书不存在");
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404)
+                .body(ApiResponse.error("图书不存在"));
         }
     }
 
@@ -113,18 +117,13 @@ public class BookController {
      * 根据ISBN查找图书
      */
     @GetMapping("/isbn/{isbn}")
-    public ResponseEntity<?> getBookByIsbn(@PathVariable String isbn) {
+    public ResponseEntity<ApiResponse<Book>> getBookByIsbn(@PathVariable String isbn) {
         Optional<Book> book = bookService.findByIsbn(isbn);
         if (book.isPresent()) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("data", book.get());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("获取图书成功", book.get()));
         } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "图书不存在");
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404)
+                .body(ApiResponse.error("图书不存在"));
         }
     }
 
@@ -132,33 +131,30 @@ public class BookController {
      * 获取所有图书（分页）
      */
     @GetMapping
-    public ResponseEntity<?> getAllBooks(
+    public ResponseEntity<ApiResponse<Page<Book>>> getAllBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        try {
+            Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<Book> books = bookService.findAll(pageable);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", books.getContent());
-        response.put("currentPage", books.getNumber());
-        response.put("totalItems", books.getTotalElements());
-        response.put("totalPages", books.getTotalPages());
-        response.put("pageSize", books.getSize());
-
-        return ResponseEntity.ok(response);
+            Page<Book> books = bookService.findAll(pageable);
+            return ResponseEntity.ok(ApiResponse.success("获取图书列表成功", books));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("获取图书列表失败: " + e.getMessage()));
+        }
     }
 
     /**
      * 搜索图书
      */
     @GetMapping("/search")
-    public ResponseEntity<?> searchBooks(
+    public ResponseEntity<ApiResponse<Page<Book>>> searchBooks(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "0") int page,
@@ -167,90 +163,60 @@ public class BookController {
         Pageable pageable = PageRequest.of(page, size);
         Page<Book> books = bookService.searchBooks(keyword, status, pageable);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", books.getContent());
-        response.put("currentPage", books.getNumber());
-        response.put("totalItems", books.getTotalElements());
-        response.put("totalPages", books.getTotalPages());
-        response.put("pageSize", books.getSize());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("搜索图书成功", books));
     }
 
     /**
      * 获取可借阅图书
      */
     @GetMapping("/available")
-    public ResponseEntity<?> getAvailableBooks() {
+    public ResponseEntity<ApiResponse<List<Book>>> getAvailableBooks() {
         List<Book> books = bookService.getAvailableBooks();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", books);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("获取可借阅图书成功", books));
     }
 
     /**
      * 获取热门图书
      */
     @GetMapping("/popular")
-    public ResponseEntity<?> getPopularBooks(
+    public ResponseEntity<ApiResponse<List<Book>>> getPopularBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
         List<Book> books = bookService.getPopularBooks(pageable);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", books);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("获取热门图书成功", books));
     }
 
     /**
      * 获取新书上架
      */
     @GetMapping("/new")
-    public ResponseEntity<?> getNewBooks(
+    public ResponseEntity<ApiResponse<List<Book>>> getNewBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
         List<Book> books = bookService.getNewBooks(pageable);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", books);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("获取新书上架成功", books));
     }
 
     /**
      * 借阅图书
      */
     @PostMapping("/{id}/borrow")
-    public ResponseEntity<?> borrowBook(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> borrowBook(@PathVariable Long id) {
         try {
             boolean success = bookService.borrowBook(id);
             if (success) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "图书借阅成功");
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success("图书借阅成功", "借阅成功"));
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "图书借阅失败");
-                return ResponseEntity.badRequest().body(response);
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("图书借阅失败"));
             }
         } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(e.getMessage()));
         }
     }
 
@@ -258,25 +224,18 @@ public class BookController {
      * 归还图书
      */
     @PostMapping("/{id}/return")
-    public ResponseEntity<?> returnBook(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> returnBook(@PathVariable Long id) {
         try {
             boolean success = bookService.returnBook(id);
             if (success) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("message", "图书归还成功");
-                return ResponseEntity.ok(response);
+                return ResponseEntity.ok(ApiResponse.success("图书归还成功", "归还成功"));
             } else {
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", false);
-                response.put("message", "图书归还失败");
-                return ResponseEntity.badRequest().body(response);
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.badRequest("图书归还失败"));
             }
         } catch (RuntimeException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(e.getMessage()));
         }
     }
 
@@ -284,18 +243,15 @@ public class BookController {
      * 获取图书统计信息
      */
     @GetMapping("/statistics")
-    public ResponseEntity<?> getStatistics() {
+    public ResponseEntity<ApiResponse<Object>> getStatistics() {
         BookService.BookStatistics statistics = bookService.getStatistics();
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", Map.of(
-            "totalBooks", statistics.getTotalBooks(),
-            "availableBooks", statistics.getAvailableBooks(),
-            "borrowedBooks", statistics.getBorrowedBooks(),
-            "categoryCounts", statistics.getCategoryCounts()
-        ));
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("获取图书统计成功",
+            java.util.Map.of(
+                "totalBooks", statistics.getTotalBooks(),
+                "availableBooks", statistics.getAvailableBooks(),
+                "borrowedBooks", statistics.getBorrowedBooks(),
+                "categoryCounts", statistics.getCategoryCounts()
+            )));
     }
 }

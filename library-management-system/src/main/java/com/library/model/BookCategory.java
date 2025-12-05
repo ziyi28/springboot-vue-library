@@ -1,5 +1,6 @@
 package com.library.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -129,6 +130,7 @@ public class BookCategory {
         this.updateTime = updateTime;
     }
 
+    @JsonIgnore
     public List<Book> getBooks() {
         return books;
     }

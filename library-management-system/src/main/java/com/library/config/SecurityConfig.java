@@ -20,10 +20,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Spring Security配置类
  * 配置认证和授权规则
+ * 注意：这个配置已被SimpleSecurityConfig替代
  */
-@Configuration
-@EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+// @Configuration
+// @EnableWebSecurity
+// @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
@@ -77,7 +78,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             // 允许访问的路径
             .antMatchers(
                 "/",
+                "/login.html",
                 "/api/auth/**",
+                "/api/test/**",
                 "/api/public/**",
                 "/h2-console/**",
                 "/favicon.ico",

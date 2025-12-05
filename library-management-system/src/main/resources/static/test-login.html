@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简化登录测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-section {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>简化登录测试页面</h1>
+
+        <div class="test-section">
+            <h3>测试说明</h3>
+            <p><strong>默认账号：</strong></p>
+            <ul>
+                <li>管理员: admin / admin123</li>
+                <li>普通用户: user / 123456</li>
+            </ul>
+        </div>
+
+        <h3>登录测试</h3>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名：</label>
+                <input type="text" id="username" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码：</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            <button type="submit">登录</button>
+            <button type="button" onclick="clearResults()">清除结果</button>
+        </form>
+
+        <div id="result"></div>
+
+        <div class="test-section">
+            <h3>API测试</h3>
+            <button onclick="testSession()">检查当前Session</button>
+            <button onclick="testLogout()">登出</button>
+            <button onclick="testUsers()">获取用户列表</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8081/api';
+
+        // 清除结果
+        function clearResults() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        // 显示结果
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = isError ? 'result error' : 'result success';
+            resultDiv.textContent = message;
+        }
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                console.log('尝试登录:', { username, password });
+
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'  // 重要：包含cookies
+                });
+
+                console.log('登录响应状态:', response.status);
+                console.log('响应headers:', [...response.headers.entries()]);
+
+                const data = await response.json();
+                console.log('登录响应数据:', data);
+
+                if (response.ok && data.success) {
+                    showResult(`登录成功！
+用户类型: ${data.userType}
+用户信息: ${JSON.stringify(data.user, null, 2)}
+Session ID: ${data.sessionId || '无'}
+完整响应: ${JSON.stringify(data, null, 2)}`);
+
+                    // 保存到localStorage
+                    localStorage.setItem('currentUser', data.user.username);
+                    localStorage.setItem('userRole', data.userType);
+                    localStorage.setItem('sessionId', data.sessionId);
+
+                } else {
+                    showResult(`登录失败！
+错误信息: ${data.message || '未知错误'}
+状态码: ${response.status}
+完整响应: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                console.error('登录请求失败:', error);
+                showResult(`登录请求失败: ${error.message}
+请检查：
+1. 服务器是否启动 (http://localhost:8081)
+2. 网络连接是否正常
+3. API路径是否正确`, true);
+            }
+        });
+
+        // 测试Session
+        async function testSession() {
+            try {
+                const response = await fetch(`${API_BASE}/users/profile`, {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                console.log('Session测试响应:', data);
+
+                if (response.ok && data.success) {
+                    showResult(`Session有效！
+用户信息: ${JSON.stringify(data.data, null, 2)}`);
+                } else {
+                    showResult(`Session无效或已过期
+响应: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                console.error('Session测试失败:', error);
+                showResult(`Session测试失败: ${error.message}`, true);
+            }
+        }
+
+        // 测试登出
+        async function testLogout() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                console.log('登出响应:', data);
+
+                if (response.ok && data.success) {
+                    showResult(`登出成功！
+响应: ${JSON.stringify(data, null, 2)}`);
+                    // 清除localStorage
+                    localStorage.clear();
+                } else {
+                    showResult(`登出失败: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                console.error('登出失败:', error);
+                showResult(`登出失败: ${error.message}`, true);
+            }
+        }
+
+        // 测试获取用户列表
+        async function testUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                console.log('用户列表响应:', data);
+
+                if (response.ok && data.success) {
+                    showResult(`获取用户列表成功！
+用户数量: ${data.data.length}
+用户列表: ${JSON.stringify(data.data, null, 2)}`);
+                } else {
+                    showResult(`获取用户列表失败: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                console.error('获取用户列表失败:', error);
+                showResult(`获取用户列表失败: ${error.message}`, true);
+            }
+        }
+
+        // 页面加载时检查当前状态
+        window.onload = function() {
+            console.log('页面加载完成，检查当前状态...');
+
+            // 检查localStorage中的用户信息
+            const currentUser = localStorage.getItem('currentUser');
+            const userRole = localStorage.getItem('userRole');
+
+            if (currentUser && userRole) {
+                showResult(`发现本地存储的用户信息：
+用户: ${currentUser}
+角色: ${userRole}
+提示：请点击"检查当前Session"验证服务器端状态`);
+            }
+        };
+    </script>
+</body>
+</html>

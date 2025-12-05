@@ -20,7 +20,7 @@ import java.io.IOException;
  * JWT认证过滤器
  * 负责从请求中提取JWT token并进行认证
  */
-@Component
+// @Component  // 临时禁用JWT过滤器，使用Session认证
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired

@@ -84,18 +84,75 @@ function updateNavigationForRole(role) {
     const adminNavItem = document.getElementById('adminNavItem');
 
     // 只有管理员和图书管理员可以看到用户管理
-    if (role === 'ADMIN' || role === 'LIBRARIAN') {
+    if (role === 'ADMIN' || role === 'admin' || role === 'LIBRARIAN') {
         usersNavItem.style.display = 'block';
     } else {
         usersNavItem.style.display = 'none';
     }
 
     // 只有系统管理员可以看到管理员功能
-    if (role === 'ADMIN') {
+    if (role === 'ADMIN' || role === 'admin') {
         adminNavItem.style.display = 'block';
     } else {
         adminNavItem.style.display = 'none';
     }
+}
+
+// 显示管理员界面
+function showAdminInterface() {
+    // 默认显示管理员功能区域
+    setTimeout(() => {
+        // 隐藏所有内容区域
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // 移除所有导航的活动状态
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // 显示管理员功能区域
+        const adminNavItem = document.getElementById('adminNavItem');
+        const adminSection = document.getElementById('admin');
+
+        if (adminNavItem && adminSection) {
+            adminNavItem.style.display = 'block';
+            adminNavItem.classList.add('active');
+            adminSection.classList.add('active');
+
+            // 加载管理员统计数据
+            loadStatistics();
+        }
+    }, 100);
+}
+
+// 显示普通用户界面
+function showUserInterface() {
+    // 默认显示图书列表区域
+    setTimeout(() => {
+        // 隐藏所有内容区域
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // 移除所有导航的活动状态
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // 显示图书列表作为用户的主界面
+        const booksNavItem = document.querySelector('a[href="#books"]').parentElement;
+        const booksSection = document.getElementById('books');
+
+        if (booksNavItem && booksSection) {
+            booksNavItem.classList.add('active');
+            booksSection.classList.add('active');
+
+            // 加载图书列表
+            loadBookList();
+        }
+    }, 100);
 }
 
 function setupAuthForms() {
@@ -121,9 +178,18 @@ function setupAuthForms() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    authToken = data.token;
+                    // 调试：打印返回的数据结构
+                    console.log('登录返回数据:', data);
+                    console.log('userType:', data.userType);
+                    console.log('user object:', data.user);
+
+                    // 使用sessionId作为token
+                    authToken = data.sessionId;
                     currentUser = data.user.username;
-                    userRole = data.role;
+                    // 从user对象中获取role，或从userType中获取
+                    userRole = data.userType || data.user.role;
+
+                    console.log('设置的用户角色:', userRole);
 
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', currentUser);
@@ -177,9 +243,11 @@ function setupAuthForms() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    authToken = data.token;
+                    // 使用sessionId作为token
+                    authToken = data.sessionId || '';
                     currentUser = data.user.username;
-                    userRole = data.role;
+                    // 从user对象中获取role，或从userType中获取
+                    userRole = data.user.role || data.userType || 'USER';
 
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', currentUser);
@@ -247,17 +315,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 初始化应用
 function initializeApp() {
+    console.log('initializeApp 被调用，当前用户角色:', userRole);
+
     // 导航菜单事件监听
     setupNavigation();
+
+    // 根据用户角色显示相应界面
+    if (userRole === 'ADMIN' || userRole === 'admin') {
+        console.log('检测到管理员角色，显示管理员界面');
+        showAdminInterface();
+    } else {
+        console.log('检测到普通用户角色或角色为空，显示用户界面');
+        showUserInterface();
+    }
 
     // 用户表单提交事件
     setupUserForm();
 
     // 加载统计数据
     loadStatistics();
-
-    // 加载用户列表
-    loadUserList();
 
     // 设置搜索功能
     setupSearch();

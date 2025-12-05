@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小登录测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .login-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .accounts {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .test-links {
+            margin-top: 20px;
+        }
+        .test-links a {
+            display: block;
+            margin: 5px 0;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .test-links a:hover {
+            text-decoration: underline;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>📚 图书管理系统登录</h1>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名:</label>
+                <input type="text" id="username" name="username" value="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" value="admin123" required>
+            </div>
+            <button type="submit">登录</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div class="accounts">
+            <h3>测试账户:</h3>
+            <p><strong>管理员:</strong> admin / admin123</p>
+            <p><strong>图书管理员:</strong> librarian / admin123</p>
+            <p><strong>学生:</strong> student1 / 123456</p>
+        </div>
+
+        <div class="test-links">
+            <h3>测试链接:</h3>
+            <a href="/test" target="_blank">基础测试</a>
+            <a href="/basic/ping" target="_blank">Ping测试</a>
+            <a href="/simple-login/ping" target="_blank">登录服务测试</a>
+            <a href="/simple-login/accounts" target="_blank">测试账户信息</a>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const resultDiv = document.getElementById('result');
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            showResult('正在登录...', 'info');
+
+            try {
+                const response = await fetch('/simple-login/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(`登录成功！<br>用户: ${data.user.realName}<br>角色: ${data.role}`, 'success');
+                    console.log('登录成功:', data);
+                } else {
+                    showResult(`登录失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                showResult(`登录失败: ${error.message}`, 'error');
+            }
+        });
+
+        function showResult(message, type) {
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+
+        // 页面加载时测试连接
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch('/basic/ping');
+                const data = await response.json();
+                if (data.success) {
+                    console.log('✅ 基础连接正常');
+                }
+            } catch (error) {
+                console.error('❌ 基础连接失败:', error);
+                showResult('服务器连接失败，请检查应用是否正常启动', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

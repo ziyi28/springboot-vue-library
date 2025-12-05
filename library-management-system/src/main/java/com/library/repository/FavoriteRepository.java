@@ -73,17 +73,17 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
            "ORDER BY favoriteCount DESC")
     List<Object[]> findPopularCategories();
 
-    // 统计每日收藏数量
-    @Query("SELECT FUNCTION('DATE', f.createTime), COUNT(f) FROM Favorite f " +
-           "GROUP BY FUNCTION('DATE', f.createTime) " +
-           "ORDER BY FUNCTION('DATE', f.createTime) DESC")
-    List<Object[]> countFavoritesByDate();
+    // 统计每日收藏数量 - 暂时注释，FUNCTION语法不被HQL支持
+    // @Query("SELECT FUNCTION('DATE', f.createTime), COUNT(f) FROM Favorite f " +
+    //        "GROUP BY FUNCTION('DATE', f.createTime) " +
+    //        "ORDER BY FUNCTION('DATE', f.createTime) DESC")
+    // List<Object[]> countFavoritesByDate();
 
-    // 统计每月收藏数量
-    @Query("SELECT FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime), COUNT(f) FROM Favorite f " +
-           "GROUP BY FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime) " +
-           "ORDER BY FUNCTION('YEAR', f.createTime) DESC, FUNCTION('MONTH', f.createTime) DESC")
-    List<Object[]> countFavoritesByMonth();
+    // 统计每月收藏数量 - 暂时注释，FUNCTION语法不被HQL支持
+    // @Query("SELECT FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime), COUNT(f) FROM Favorite f " +
+    //        "GROUP BY FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime) " +
+    //        "ORDER BY FUNCTION('YEAR', f.createTime) DESC, FUNCTION('MONTH', f.createTime) DESC")
+    // List<Object[]> countFavoritesByMonth();
 
     // 查找收藏数量最多的用户
     @Query("SELECT f.user.id, f.user.username, COUNT(f) as favoriteCount FROM Favorite f " +
@@ -124,19 +124,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     @Query("SELECT u FROM User u WHERE NOT EXISTS (SELECT 1 FROM Favorite f WHERE f.user.id = u.id)")
     List<User> findUsersWithoutFavorites();
 
-    // 新增缺失的方法
-    boolean existsByUserIdAndBookId(Long userId, Long bookId);
-
-    @Query("SELECT f FROM Favorite f WHERE f.user.id = :userId ORDER BY f.createTime DESC")
-    List<Favorite> findByUserIdOrderByCreateTimeDesc(@Param("userId") Long userId);
-
-    @Query("SELECT f FROM Favorite f ORDER BY f.createTime DESC")
-    List<Favorite> findAllByOrderByCreateTimeDesc();
-
-    @Query("SELECT f.book.id, f.book.title, f.book.author, COUNT(f) as favoriteCount FROM Favorite f " +
-           "GROUP BY f.book.id, f.book.title, f.book.author " +
-           "ORDER BY favoriteCount DESC")
-    List<Object[]> findFavoriteCountByBook();
+    // existsByUserIdAndBookId 方法在JpaRepository中已存在
 
     @Query("SELECT b.category.id, b.category.categoryName, COUNT(f) as favoriteCount " +
            "FROM Favorite f " +
@@ -145,34 +133,19 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
            "ORDER BY favoriteCount DESC")
     List<Object[]> findFavoriteCountByCategory();
 
-    @Query("SELECT FUNCTION('DATE', f.createTime), COUNT(f) FROM Favorite f " +
-           "GROUP BY FUNCTION('DATE', f.createTime) " +
-           "ORDER BY FUNCTION('DATE', f.createTime) DESC")
-    List<Object[]> findFavoriteCountByDate();
+    // 暂时注释，FUNCTION语法不被HQL支持
+    // @Query("SELECT FUNCTION('DATE', f.createTime), COUNT(f) FROM Favorite f " +
+    //        "GROUP BY FUNCTION('DATE', f.createTime) " +
+    //        "ORDER BY FUNCTION('DATE', f.createTime) DESC")
+    // List<Object[]> findFavoriteCountByDate();
 
-    @Query("SELECT FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime), COUNT(f) FROM Favorite f " +
-           "GROUP BY FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime) " +
-           "ORDER BY FUNCTION('YEAR', f.createTime) DESC, FUNCTION('MONTH', f.createTime) DESC")
-    List<Object[]> findFavoriteCountByMonth();
+    // 暂时注释，FUNCTION语法不被HQL支持
+    // @Query("SELECT FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime), COUNT(f) FROM Favorite f " +
+    //        "GROUP BY FUNCTION('YEAR', f.createTime), FUNCTION('MONTH', f.createTime) " +
+    //        "ORDER BY FUNCTION('YEAR', f.createTime) DESC, FUNCTION('MONTH', f.createTime) DESC")
+    // List<Object[]> findFavoriteCountByMonth();
 
-    @Query("SELECT f.user.id, f.user.username, COUNT(f) as favoriteCount FROM Favorite f " +
-           "GROUP BY f.user.id, f.user.username " +
-           "ORDER BY favoriteCount DESC")
-    List<Object[]> findTopUsersByFavoriteCount();
-
-    @Query("SELECT f FROM Favorite f WHERE f.user.id = :userId AND " +
-           "LOWER(f.book.title) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    List<Favorite> findByUserIdAndBookTitleContaining(@Param("userId") Long userId, @Param("keyword") String keyword);
-
-    @Query("SELECT b.category.categoryName, COUNT(f) FROM Favorite f " +
-           "JOIN f.book b " +
-           "WHERE f.user.id = :userId " +
-           "GROUP BY b.category.categoryName " +
-           "ORDER BY COUNT(f) DESC")
-    List<Object[]> findFavoriteCountByCategoryForUser(@Param("userId") Long userId);
-
-    @Query("SELECT COUNT(f) > 0 FROM Favorite f WHERE f.user.id = :userId AND f.book.category.id = :categoryId")
-    boolean existsByUserIdAndBookCategoryId(@Param("userId") Long userId, @Param("categoryId") Long categoryId);
+    // 这些方法在其他地方已经定义或重复了
 
     @Query("SELECT COUNT(DISTINCT f.book.id) FROM Favorite f")
     Long countDistinctBookId();

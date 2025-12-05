@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 图书管理系统 - 基础功能测试</h1>
+
+    <div id="basic-test" class="test-section">
+        <h2>1. 基本连接测试</h2>
+        <button onclick="testBasic()">测试基本连接</button>
+        <div id="basic-result" class="test-result"></div>
+    </div>
+
+    <div id="api-test" class="test-section">
+        <h2>2. API测试</h2>
+        <button onclick="testAPI()">测试API接口</button>
+        <div id="api-result" class="test-result"></div>
+    </div>
+
+    <div id="login-test" class="test-section">
+        <h2>3. 登录接口测试</h2>
+        <button onclick="testLogin()">测试登录接口</button>
+        <div id="login-result" class="test-result"></div>
+    </div>
+
+    <div id="manual-test" class="test-section">
+        <h2>4. 手动测试链接</h2>
+        <p>请点击以下链接手动测试：</p>
+        <ul>
+            <li><a href="/test" target="_blank">/test - 基本测试</a></li>
+            <li><a href="/basic/ping" target="_blank">/basic/ping - Ping测试</a></li>
+            <li><a href="/basic/login-test" target="_blank">/basic/login-test - 登录测试</a></li>
+            <li><a href="/basic/info" target="_blank">/basic/info - 系统信息</a></li>
+        </ul>
+    </div>
+
+    <div id="manual-login" class="test-section">
+        <h2>5. 手动登录测试</h2>
+        <form id="login-form">
+            <p>
+                用户名: <input type="text" id="username" value="admin" size="20">
+            </p>
+            <p>
+                密码: <input type="password" id="password" value="admin123" size="20">
+            </p>
+            <button type="button" onclick="testManualLogin()">测试登录</button>
+        </form>
+        <div id="manual-result" class="test-result"></div>
+    </div>
+
+    <div id="system-info" class="test-section">
+        <h2>6. 系统信息</h2>
+        <p><strong>当前时间:</strong> <span id="current-time"></span></p>
+        <p><strong>浏览器:</strong> <span id="browser-info"></span></p>
+        <p><strong>URL:</strong> <span id="current-url"></span></p>
+    </div>
+
+    <script>
+        // 显示系统信息
+        document.getElementById('current-time').textContent = new Date().toLocaleString();
+        document.getElementById('browser-info').textContent = navigator.userAgent;
+        document.getElementById('current-url').textContent = window.location.href;
+
+        // 基本连接测试
+        function testBasic() {
+            const resultDiv = document.getElementById('basic-result');
+            resultDiv.innerHTML = '测试中...';
+
+            fetch('/test')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .then(data => {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ 测试成功！<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `❌ 测试失败！<br>错误: ${error.message}`;
+                });
+        }
+
+        // API测试
+        function testAPI() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '测试中...';
+
+            fetch('/api')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .then(data => {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ API测试成功！<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `❌ API测试失败！<br>错误: ${error.message}`;
+                });
+        }
+
+        // 登录接口测试
+        function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.innerHTML = '测试中...';
+
+            fetch('/basic/login-test')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .then(data => {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ 登录接口测试成功！<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `❌ 登录接口测试失败！<br>错误: ${error.message}`;
+                });
+        }
+
+        // 手动登录测试
+        function testManualLogin() {
+            const resultDiv = document.getElementById('manual-result');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            resultDiv.innerHTML = '登录测试中...';
+
+            const loginData = {
+                username: username,
+                password: password
+            };
+
+            fetch('/basic/echo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(loginData)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .then(data => {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ 数据传输成功！<br>发送的数据：<pre>${JSON.stringify(loginData, null, 2)}</pre>服务器响应：<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `❌ 数据传输失败！<br>错误: ${error.message}`;
+                });
+        }
+
+        // 页面加载时自动运行基本测试
+        window.addEventListener('load', function() {
+            setTimeout(testBasic, 1000);
+        });
+    </script>
+</body>
+</html>

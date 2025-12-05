@@ -328,4 +328,15 @@ public class AdminServiceImpl implements AdminService {
     public List<Admin> getAdminsByRoleAndStatus(AdminRole role, Boolean status) {
         return adminRepository.findByRoleAndStatus(role, status);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getAdminStats() {
+        return java.util.Map.of(
+            "totalAdmins", getTotalAdminCount(),
+            "activeAdmins", getActiveAdminCount(),
+            "adminCountByRole", getAdminCountByRole(),
+            "adminCountByStatus", getAdminCountByStatus()
+        );
+    }
 }

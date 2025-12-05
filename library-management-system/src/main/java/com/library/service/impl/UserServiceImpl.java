@@ -50,8 +50,49 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Optional<User> authenticate(String username, String password) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(password, user.getPassword())) {
+                return userOpt;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean checkPassword(User user, String rawPassword) {
+        return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
+
+    @Override
+    public void changePassword(User user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdateTime(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Override
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 
     @Override
@@ -110,5 +151,30 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
+    }
+
+    @Override
+    public Page<User> findByUsernameContaining(String keyword, Pageable pageable) {
+        return userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
+    }
+
+    @Override
+    public long countUsers() {
+        return userRepository.count();
+    }
+
+    @Override
+    public long countActiveUsers() {
+        return userRepository.countByStatus(1);
+    }
+
+    @Override
+    public List<User> searchUsers(String keyword) {
+        return userRepository.findByUsernameContainingIgnoreCaseOrRealNameContainingIgnoreCaseOrEmailContainingIgnoreCase(keyword, keyword, keyword);
+    }
+
+    @Override
+    public List<User> findByStatus(Integer status) {
+        return userRepository.findByStatus(status);
     }
 }
