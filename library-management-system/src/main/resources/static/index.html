@@ -176,9 +176,9 @@
                     <li id="sidebarBookList" style="display: none;"><a href="#" onclick="showBookList()"><i class="fas fa-book"></i> 图书列表</a></li>
 
                     <!-- 普通用户功能 -->
-                    <li id="sidebarBrowseBooks" style="display: block;"><a href="#" onclick="showBookList()"><i class="fas fa-book-open"></i> 浏览图书</a></li>
-                    <li id="sidebarMyFavorites" style="display: block;"><a href="#" onclick="showMyFavorites()"><i class="fas fa-heart"></i> 我的收藏</a></li>
-                    <li id="sidebarBorrowHistory" style="display: block;"><a href="#" onclick="showBorrowHistory()"><i class="fas fa-history"></i> 借阅历史</a></li>
+                    <li id="sidebarBrowseBooks" style="display: none;"><a href="#" onclick="showBookList()"><i class="fas fa-book-open"></i> 浏览图书</a></li>
+                    <li id="sidebarMyFavorites" style="display: none;"><a href="#" onclick="showMyFavorites()"><i class="fas fa-heart"></i> 我的收藏</a></li>
+                    <li id="sidebarBorrowHistory" style="display: none;"><a href="#" onclick="showBorrowHistory()"><i class="fas fa-history"></i> 借阅历史</a></li>
                 </ul>
             </div>
 
@@ -245,7 +245,7 @@
                         </div>
                     </div>
 
-                    <div class="dashboard-card">
+                    <div class="dashboard-card" id="dashboardBorrowRecords" style="display: none;">
                         <div class="card-icon orange">
                             <i class="fas fa-history"></i>
                         </div>
@@ -258,7 +258,20 @@
                         </div>
                     </div>
 
-                    <div class="dashboard-card">
+                    <div class="dashboard-card" id="dashboardBookBrowse" style="display: none;">
+                        <div class="card-icon blue">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>浏览图书</h3>
+                            <p>查看所有图书</p>
+                            <button class="btn btn-primary" onclick="showBookList()">
+                                <i class="fas fa-search"></i> 浏览图书
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card" id="dashboardSystemSettings">
                         <div class="card-icon purple">
                             <i class="fas fa-cog"></i>
                         </div>

@@ -18,9 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * 简化的Spring Security配置
  * 确保登录接口可以正常访问
  */
-@Configuration
-@EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+// @Configuration
+// @EnableWebSecurity
+// @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SimpleSecurityConfig extends WebSecurityConfigurerAdapter {
 
     // @Autowired
@@ -41,17 +41,22 @@ public class SimpleSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable()
-            // 启用session支持
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            // 禁用session支持 - 完全无状态
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-            // 配置请求授权
+            // 配置请求授权 - 完全开放所有路径
             .authorizeRequests()
-            // 允许所有路径访问 - 暂时完全开放
             .antMatchers("/**").permitAll()
+            .anyRequest().permitAll()
             .and()
-            // 禁用frame options以支持H2控制台
-            .headers().frameOptions().disable();
+            // 禁用所有安全相关功能
+            .headers().frameOptions().disable()
+            .and()
+            // 禁用默认登录页面
+            .formLogin().disable()
+            .logout().disable()
+            .httpBasic().disable();
 
-        System.out.println("🔐 简化Spring Security配置加载完成 - 所有接口已开放");
+        System.out.println("🔐 完全禁用Spring Security - 所有请求无认证");
     }
 }

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>侧边栏角色测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border-bottom: 1px solid #34495e;
+        }
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+        .admin-only {
+            background-color: #e74c3c;
+        }
+        .user-only {
+            background-color: #27ae60;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .buttons {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .admin-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .user-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+        .reset-btn {
+            background-color: #95a5a6;
+            color: white;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .legend {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 侧边栏角色显示测试</h1>
+
+        <div class="buttons">
+            <button class="admin-btn" onclick="showAdminSidebar()">显示管理员侧边栏</button>
+            <button class="user-btn" onclick="showUserSidebar()">显示普通用户侧边栏</button>
+            <button class="reset-btn" onclick="resetSidebar()">重置侧边栏</button>
+        </div>
+
+        <div class="legend">
+            <h3>图例说明：</h3>
+            <p><span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px;">红色</span> = 管理员专用功能</p>
+            <p><span style="background-color: #27ae60; color: white; padding: 2px 8px; border-radius: 3px;">绿色</span> = 普通用户专用功能</p>
+            <p><span style="background-color: #34495e; color: white; padding: 2px 8px; border-radius: 3px;">灰色</span> = 通用功能</p>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="nav-item">📚 图书搜索</div>
+            <div class="nav-item admin-only" id="userRegistration">👥 用户注册</div>
+            <div class="nav-item admin-only" id="userList">📋 用户列表</div>
+            <div class="nav-item admin-only" id="addBook">📖 添加图书</div>
+            <div class="nav-item admin-only" id="bookManagement">📚 图书管理</div>
+            <div class="nav-item admin-only" id="categoryManagement">📂 分类管理</div>
+            <div class="nav-item admin-only" id="borrowManagement">📋 借阅管理</div>
+            <div class="nav-item user-only" id="browseBooks">🔍 浏览图书</div>
+            <div class="nav-item user-only" id="myFavorites">❤️ 我的收藏</div>
+            <div class="nav-item user-only" id="borrowHistory">📚 借阅历史</div>
+            <div class="nav-item user-only" id="userProfile">👤 个人中心</div>
+            <div class="nav-item">⚙️ 系统设置</div>
+            <div class="nav-item">🚪 退出登录</div>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        function resetSidebar() {
+            const allItems = document.querySelectorAll('.nav-item');
+            allItems.forEach(item => {
+                item.classList.remove('hidden');
+            });
+            showStatus('✅ 侧边栏已重置，显示所有功能', 'info');
+        }
+
+        function showAdminSidebar() {
+            resetSidebar();
+
+            // 隐藏普通用户功能
+            const userItems = [
+                'browseBooks', 'myFavorites', 'borrowHistory', 'userProfile'
+            ];
+
+            userItems.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+
+            showStatus('👨‍💼 已切换到管理员侧边栏：只显示管理功能，隐藏普通用户功能', 'success');
+        }
+
+        function showUserSidebar() {
+            resetSidebar();
+
+            // 隐藏管理员功能
+            const adminItems = [
+                'userRegistration', 'userList', 'addBook', 'bookManagement',
+                'categoryManagement', 'borrowManagement'
+            ];
+
+            adminItems.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+
+            showStatus('👤 已切换到普通用户侧边栏：只显示用户功能，隐藏管理功能', 'success');
+        }
+
+        // 页面加载时显示说明
+        window.addEventListener('load', function() {
+            showStatus('👆 点击上方按钮测试不同角色的侧边栏显示效果', 'info');
+        });
+    </script>
+</body>
+</html>

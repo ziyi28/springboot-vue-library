@@ -14,7 +14,9 @@
       "Bash(tskill:*)",
       "Bash(cmd:*)",
       "Bash(wmic:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(timeout:*)",
+      "Bash(powershell -Command \"Get-Process -Name java -ErrorAction SilentlyContinue | Stop-Process -Force\")"
     ],
     "deny": [],
     "ask": []

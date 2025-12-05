@@ -80,21 +80,94 @@ function getRoleDisplayName(role) {
 }
 
 function updateNavigationForRole(role) {
+    console.log('updateNavigationForRole 被调用，角色:', role);
+
     const usersNavItem = document.getElementById('usersNavItem');
     const adminNavItem = document.getElementById('adminNavItem');
 
-    // 只有管理员和图书管理员可以看到用户管理
+    // 管理员侧边栏项目
+    const sidebarUserRegistration = document.getElementById('sidebarUserRegistration');
+    const sidebarUserList = document.getElementById('sidebarUserList');
+    const sidebarAddBook = document.getElementById('sidebarAddBook');
+    const sidebarBookList = document.getElementById('sidebarBookList');
+    const navBookManagement = document.getElementById('navBookManagement');
+
+    // 普通用户侧边栏项目
+    const sidebarBrowseBooks = document.getElementById('sidebarBrowseBooks');
+    const sidebarMyFavorites = document.getElementById('sidebarMyFavorites');
+    const sidebarBorrowHistory = document.getElementById('sidebarBorrowHistory');
+
+    // 仪表板卡片
+    const dashboardUserManagement = document.getElementById('dashboardUserManagement');
+    const dashboardBookManagement = document.getElementById('dashboardBookManagement');
+    const dashboardBorrowRecords = document.getElementById('dashboardBorrowRecords');
+    const dashboardBookBrowse = document.getElementById('dashboardBookBrowse');
+    const dashboardSystemSettings = document.getElementById('dashboardSystemSettings');
+
+    // 只有管理员和图书管理员可以看到用户管理功能
     if (role === 'ADMIN' || role === 'admin' || role === 'LIBRARIAN') {
-        usersNavItem.style.display = 'block';
+        console.log('设置管理员界面');
+
+        // 显示管理员功能
+        if (usersNavItem) usersNavItem.style.display = 'block';
+        if (sidebarUserRegistration) sidebarUserRegistration.style.display = 'block';
+        if (sidebarUserList) sidebarUserList.style.display = 'block';
+        if (sidebarAddBook) sidebarAddBook.style.display = 'block';
+        if (sidebarBookList) sidebarBookList.style.display = 'block';
+        if (navBookManagement) navBookManagement.style.display = 'block';
+
+        // 管理员仪表板卡片
+        if (dashboardUserManagement) dashboardUserManagement.style.display = 'block';
+        if (dashboardBookManagement) dashboardBookManagement.style.display = 'block';
+        if (dashboardBorrowRecords) dashboardBorrowRecords.style.display = 'block';
+        if (dashboardBookBrowse) dashboardBookBrowse.style.display = 'none'; // 管理员不需要浏览图书
+        if (dashboardSystemSettings) dashboardSystemSettings.style.display = 'block';
+
+        // 强制隐藏普通用户功能 - 这是关键修复
+        if (sidebarBrowseBooks) {
+            sidebarBrowseBooks.style.display = 'none';
+            console.log('隐藏浏览图书功能');
+        }
+        if (sidebarMyFavorites) {
+            sidebarMyFavorites.style.display = 'none';
+            console.log('隐藏我的收藏功能');
+        }
+        if (sidebarBorrowHistory) {
+            sidebarBorrowHistory.style.display = 'none';
+            console.log('隐藏借阅历史功能');
+        }
+
+        console.log('管理员界面设置完成 - 普通用户功能已隐藏');
     } else {
         usersNavItem.style.display = 'none';
+        sidebarUserRegistration.style.display = 'none';
+        sidebarUserList.style.display = 'none';
+        sidebarAddBook.style.display = 'none';
+        sidebarBookList.style.display = 'none';
+        navBookManagement.style.display = 'none';
+
+        // 普通用户仪表板卡片
+        if (dashboardUserManagement) dashboardUserManagement.style.display = 'none';
+        if (dashboardBookManagement) dashboardBookManagement.style.display = 'none';
+        if (dashboardBorrowRecords) dashboardBorrowRecords.style.display = 'block'; // 普通用户可以看借阅记录
+        if (dashboardBookBrowse) dashboardBookBrowse.style.display = 'block'; // 普通用户可以浏览图书
+        if (dashboardSystemSettings) dashboardSystemSettings.style.display = 'none';
+
+        // 普通用户可以看到普通功能
+        sidebarBrowseBooks.style.display = 'block';
+        sidebarMyFavorites.style.display = 'block';
+        sidebarBorrowHistory.style.display = 'block';
+
+        console.log('隐藏管理员功能，显示普通用户功能');
     }
 
     // 只有系统管理员可以看到管理员功能
     if (role === 'ADMIN' || role === 'admin') {
         adminNavItem.style.display = 'block';
+        console.log('显示系统管理员功能');
     } else {
         adminNavItem.style.display = 'none';
+        console.log('隐藏系统管理员功能');
     }
 }
 
@@ -114,7 +187,7 @@ function showAdminInterface() {
     document.getElementById('sidebarAddBook').style.display = 'block';
     document.getElementById('sidebarBookList').style.display = 'block';
 
-    // 隐藏普通用户专用功能
+    // 强制隐藏普通用户专用功能 - 关键修复点
     document.getElementById('sidebarBrowseBooks').style.display = 'none';
     document.getElementById('sidebarMyFavorites').style.display = 'none';
     document.getElementById('sidebarBorrowHistory').style.display = 'none';
@@ -210,52 +283,67 @@ function setupAuthForms() {
     // 登录表单
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
+        // 防止重复绑定事件监听器
+        if (loginForm.hasAttribute('data-login-bound')) {
+            return;
+        }
+        loginForm.setAttribute('data-login-bound', 'true');
+
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            // 防止重复提交
+            if (this.hasAttribute('data-submitting')) {
+                return;
+            }
+            this.setAttribute('data-submitting', 'true');
+
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
+
+            console.log('开始登录:', username);
 
             fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    username: username,
-                    password: password
-                })
+                body: JSON.stringify({ username, password })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // 调试：打印返回的数据结构
-                    console.log('登录返回数据:', data);
-                    console.log('userType:', data.userType);
-                    console.log('user object:', data.user);
+                console.log('登录响应:', data);
 
-                    // 使用sessionId作为token
+                if (data.success) {
+                    // 保存登录信息
                     authToken = data.sessionId;
                     currentUser = data.user.username;
-                    // 从user对象中获取role，或从userType中获取
                     userRole = data.userType || data.user.role;
-
-                    console.log('设置的用户角色:', userRole);
 
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('currentUser', currentUser);
                     localStorage.setItem('userRole', userRole);
 
+                    console.log('登录成功，角色:', userRole);
+
+                    // 显示成功消息
                     showMessage('登录成功！', 'success');
-                    showMainApp();
-                    initializeApp();
+
+                    // 切换界面
+                    setTimeout(() => {
+                        showMainApp();
+                        initializeApp();
+                    }, 500);
                 } else {
                     showMessage(data.message || '登录失败', 'error');
                 }
             })
             .catch(error => {
                 console.error('登录错误:', error);
-                showMessage('登录失败，请检查网络连接', 'error');
+                showMessage('登录失败：网络错误', 'error');
+            })
+            .finally(() => {
+                this.removeAttribute('data-submitting');
             });
         });
     }
@@ -371,7 +459,10 @@ function initializeApp() {
     // 导航菜单事件监听
     setupNavigation();
 
-    // 根据用户角色显示相应界面
+    // 首先更新角色导航显示 - 这是最重要的步骤
+    updateNavigationForRole(userRole);
+
+    // 然后根据用户角色显示相应界面
     if (userRole === 'ADMIN' || userRole === 'admin') {
         console.log('检测到管理员角色，显示管理员界面');
         showAdminInterface();
@@ -742,40 +833,60 @@ function updateStatistics(stats) {
     }
 }
 
-// 显示消息提示
-function showMessage(message, type = 'info') {
-    const container = document.getElementById('messageContainer');
-    if (!container) return;
-
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${type}`;
-
-    let icon = 'fa-info-circle';
-    switch (type) {
-        case 'success':
-            icon = 'fa-check-circle';
-            break;
-        case 'error':
-            icon = 'fa-exclamation-circle';
-            break;
-        case 'warning':
-            icon = 'fa-exclamation-triangle';
-            break;
-    }
-
-    messageEl.innerHTML = `
-        <i class="fas ${icon}"></i>
-        <span>${message}</span>
-    `;
-
-    container.appendChild(messageEl);
-
-    // 3秒后自动移除
-    setTimeout(() => {
-        if (messageEl.parentNode) {
-            messageEl.parentNode.removeChild(messageEl);
+// 全局消息管理器
+const MessageManager = {
+    // 清除所有现有消息
+    clearAllMessages() {
+        const container = document.getElementById('messageContainer');
+        if (container) {
+            container.innerHTML = '';
         }
-    }, 3000);
+    },
+
+    // 显示消息
+    showMessage(message, type = 'info') {
+        const container = document.getElementById('messageContainer');
+        if (!container) return;
+
+        // 先清除所有现有消息，确保只显示一条
+        this.clearAllMessages();
+
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${type}`;
+
+        let icon = 'fa-info-circle';
+        switch (type) {
+            case 'success':
+                icon = 'fa-check-circle';
+                break;
+            case 'error':
+                icon = 'fa-exclamation-circle';
+                break;
+            case 'warning':
+                icon = 'fa-exclamation-triangle';
+                break;
+        }
+
+        messageEl.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+
+        container.appendChild(messageEl);
+
+        // 3秒后自动移除
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.parentNode.removeChild(messageEl);
+            }
+        }, 3000);
+    }
+};
+
+// 显示消息提示 - 重定向到消息管理器
+function showMessage(message, type = 'info') {
+    console.log(`显示消息: [${type}] ${message}`);
+    MessageManager.showMessage(message, type);
 }
 
 // 显示加载遮罩
@@ -958,11 +1069,8 @@ async function registerBook() {
         bookData.status = 1;
         bookData.borrowedCopies = 0;
 
-        const response = await fetch(`${API_BASE_URL}/books`, {
+        const response = await apiRequest('/books', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(bookData)
         });
 
@@ -993,7 +1101,7 @@ async function loadBookList(page = 0) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/books?page=${page}&size=${bookPageSize}&sortBy=id&sortDir=desc`);
+        const response = await apiRequest(`/books?page=${page}&size=${bookPageSize}&sortBy=id&sortDir=desc`);
         const result = await response.json();
 
         if (result.success) {
@@ -1112,7 +1220,7 @@ async function searchBooksByKeyword(keyword) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/books/search?keyword=${encodeURIComponent(keyword)}`);
+        const response = await apiRequest(`/books/search?keyword=${encodeURIComponent(keyword)}`);
         const result = await response.json();
 
         if (result.success) {
@@ -1144,7 +1252,7 @@ async function borrowBook(bookId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/books/${bookId}/borrow`, {
+        const response = await apiRequest(`/books/${bookId}/borrow`, {
             method: 'POST'
         });
 
@@ -1174,7 +1282,7 @@ async function returnBook(bookId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/books/${bookId}/return`, {
+        const response = await apiRequest(`/books/${bookId}/return`, {
             method: 'POST'
         });
 
@@ -1204,7 +1312,7 @@ async function deleteBook(bookId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
+        const response = await apiRequest(`/books/${bookId}`, {
             method: 'DELETE'
         });
 
@@ -1234,7 +1342,7 @@ function refreshBookList() {
 // 加载图书统计
 async function loadBookStatistics() {
     try {
-        const response = await fetch(`${API_BASE_URL}/books/statistics`);
+        const response = await apiRequest('/books/statistics');
         const result = await response.json();
 
         if (result.success) {
@@ -1374,7 +1482,7 @@ async function processBorrow() {
         const userId = formData.get('userId');
         const bookId = formData.get('bookId');
 
-        const response = await fetch(`${API_BASE_URL}/borrow-records/borrow?userId=${userId}&bookId=${bookId}`, {
+        const response = await apiRequest(`/borrow-records/borrow?userId=${userId}&bookId=${bookId}`, {
             method: 'POST'
         });
 
@@ -1400,12 +1508,12 @@ async function loadBorrowRecords(page = 0, status = '') {
     showLoading();
 
     try {
-        let url = `${API_BASE_URL}/borrow-records?page=${page}&size=${borrowPageSize}`;
+        let endpoint = `/borrow-records?page=${page}&size=${borrowPageSize}`;
         if (status) {
-            url = `${API_BASE_URL}/borrow-records/status/${status}?page=${page}&size=${borrowPageSize}`;
+            endpoint = `/borrow-records/status/${status}?page=${page}&size=${borrowPageSize}`;
         }
 
-        const response = await fetch(url);
+        const response = await apiRequest(endpoint);
         const result = await response.json();
 
         if (result.success) {
@@ -1557,12 +1665,12 @@ async function searchBorrowRecordsByKeyword(keyword, status) {
     showLoading();
 
     try {
-        let url = `${API_BASE_URL}/borrow-records/search?page=0&size=${borrowPageSize}`;
+        let endpoint = `/borrow-records/search?page=0&size=${borrowPageSize}`;
         if (keyword) {
-            url += `&username=${encodeURIComponent(keyword)}&bookTitle=${encodeURIComponent(keyword)}`;
+            endpoint += `&username=${encodeURIComponent(keyword)}&bookTitle=${encodeURIComponent(keyword)}`;
         }
 
-        const response = await fetch(url);
+        const response = await apiRequest(endpoint);
         const result = await response.json();
 
         if (result.success) {
@@ -1585,7 +1693,7 @@ async function loadOverdueRecords() {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/borrow-records/overdue?page=0&size=${borrowPageSize}`);
+        const response = await apiRequest(`/borrow-records/overdue?page=0&size=${borrowPageSize}`);
         const result = await response.json();
 
         if (result.success) {
@@ -1608,7 +1716,7 @@ async function loadDueSoonRecords() {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/borrow-records/due-soon`);
+        const response = await apiRequest('/borrow-records/due-soon');
         const result = await response.json();
 
         if (result.success) {
@@ -1635,7 +1743,7 @@ async function returnBook(recordId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/return`, {
+        const response = await apiRequest(`/borrow-records/${recordId}/return`, {
             method: 'POST'
         });
 
@@ -1664,7 +1772,7 @@ async function renewBook(recordId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/renew`, {
+        const response = await apiRequest(`/borrow-records/${recordId}/renew`, {
             method: 'POST'
         });
 
@@ -1689,7 +1797,7 @@ async function viewBorrowRecord(recordId) {
     showLoading();
 
     try {
-        const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}`);
+        const response = await apiRequest(`/borrow-records/${recordId}`);
         const result = await response.json();
 
         if (result.success) {

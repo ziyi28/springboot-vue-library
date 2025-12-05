@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色分离调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .role-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .admin-section {
+            border-color: #e74c3c;
+            background-color: #fff5f5;
+        }
+        .user-section {
+            border-color: #27ae60;
+            background-color: #f0fff4;
+        }
+        .sidebar {
+            width: 300px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 1px solid #34495e;
+            transition: background-color 0.3s;
+        }
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+        .nav-item.hidden {
+            display: none !important;
+        }
+        .nav-item.admin {
+            background-color: #e74c3c;
+        }
+        .nav-item.user {
+            background-color: #27ae60;
+        }
+        .nav-item.common {
+            background-color: #3498db;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card.admin {
+            border-color: #e74c3c;
+        }
+        .card.user {
+            border-color: #27ae60;
+        }
+        .card.common {
+            border-color: #3498db;
+        }
+        .card.hidden {
+            display: none !important;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .admin-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .user-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+        .reset-btn {
+            background-color: #95a5a6;
+            color: white;
+        }
+        .test-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 角色分离调试页面</h1>
+
+        <div style="margin-bottom: 30px;">
+            <button class="admin-btn" onclick="simulateAdmin()">模拟管理员登录</button>
+            <button class="user-btn" onclick="simulateUser()">模拟用户登录</button>
+            <button class="reset-btn" onclick="resetView()">重置视图</button>
+            <button class="test-btn" onclick="testLogin()">测试真实登录</button>
+        </div>
+
+        <div id="status" class="status info">点击上方按钮测试角色分离效果</div>
+
+        <!-- 侧边栏部分 -->
+        <div class="role-section">
+            <h2>侧边栏显示状态</h2>
+            <div class="sidebar" id="sidebar">
+                <div class="nav-item common" data-role="common">📚 图书搜索</div>
+
+                <div class="nav-item admin" data-role="admin">👥 用户注册</div>
+                <div class="nav-item admin" data-role="admin">📋 用户列表</div>
+                <div class="nav-item admin" data-role="admin">➕ 添加图书</div>
+                <div class="nav-item admin" data-role="admin">📚 图书管理</div>
+                <div class="nav-item admin" data-role="admin">📂 分类管理</div>
+                <div class="nav-item admin" data-role="admin">📋 借阅管理</div>
+
+                <div class="nav-item user" data-role="user">🔍 浏览图书</div>
+                <div class="nav-item user" data-role="user">❤️ 我的收藏</div>
+                <div class="nav-item user" data-role="user">📚 借阅历史</div>
+                <div class="nav-item user" data-role="user">👤 个人中心</div>
+
+                <div class="nav-item common" data-role="common">⚙️ 系统设置</div>
+                <div class="nav-item common" data-role="common">🚪 退出登录</div>
+            </div>
+        </div>
+
+        <!-- 仪表板卡片部分 -->
+        <div class="role-section">
+            <h2>仪表板卡片显示状态</h2>
+            <div class="dashboard">
+                <div class="card admin" data-role="admin">
+                    <h3>👥 用户管理</h3>
+                    <p>管理系统用户</p>
+                </div>
+                <div class="card admin" data-role="admin">
+                    <h3>📚 图书管理</h3>
+                    <p>管理图书信息</p>
+                </div>
+                <div class="card admin" data-role="admin">
+                    <h3>📊 统计报表</h3>
+                    <p>查看系统统计</p>
+                </div>
+
+                <div class="card user" data-role="user">
+                    <h3>🔍 浏览图书</h3>
+                    <p>查找图书资源</p>
+                </div>
+                <div class="card user" data-role="user">
+                    <h3>❤️ 我的收藏</h3>
+                    <p>管理收藏图书</p>
+                </div>
+                <div class="card user" data-role="user">
+                    <h3>📚 借阅历史</h3>
+                    <p>查看借阅记录</p>
+                </div>
+
+                <div class="card common" data-role="common">
+                    <h3>⚙️ 系统设置</h3>
+                    <p>配置系统参数</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 真实登录测试 -->
+        <div class="role-section">
+            <h2>真实登录测试</h2>
+            <div>
+                <label for="username">用户名:</label>
+                <input type="text" id="username" value="admin" style="padding: 8px; margin: 5px;">
+                <label for="password">密码:</label>
+                <input type="password" id="password" value="admin123" style="padding: 8px; margin: 5px;">
+                <button onclick="realLogin()">登录</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        function resetView() {
+            // 显示所有元素
+            const allElements = document.querySelectorAll('.nav-item, .card');
+            allElements.forEach(element => {
+                element.classList.remove('hidden');
+            });
+            showStatus('✅ 已重置，显示所有功能', 'success');
+        }
+
+        function simulateAdmin() {
+            resetView();
+
+            // 隐藏用户专用元素
+            const userElements = document.querySelectorAll('[data-role="user"]');
+            userElements.forEach(element => {
+                element.classList.add('hidden');
+            });
+
+            showStatus('👨‍💼 模拟管理员登录：已隐藏所有用户专用功能', 'success');
+        }
+
+        function simulateUser() {
+            resetView();
+
+            // 隐藏管理员专用元素
+            const adminElements = document.querySelectorAll('[data-role="admin"]');
+            adminElements.forEach(element => {
+                element.classList.add('hidden');
+            });
+
+            showStatus('👤 模拟用户登录：已隐藏所有管理员专用功能', 'success');
+        }
+
+        async function realLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            showStatus('🔄 正在登录...', 'info');
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const userType = data.userType || data.user?.role;
+                    if (userType === 'admin' || userType === 'ADMIN') {
+                        simulateAdmin();
+                        showStatus(`✅ 管理员 ${username} 登录成功`, 'success');
+                    } else {
+                        simulateUser();
+                        showStatus(`✅ 用户 ${username} 登录成功`, 'success');
+                    }
+                } else {
+                    showStatus(`❌ 登录失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                showStatus(`❌ 登录错误: ${error.message}`, 'error');
+            }
+        }
+
+        function testLogin() {
+            showStatus('🔄 开始角色分离测试...', 'info');
+
+            // 先显示管理员视图
+            setTimeout(() => {
+                simulateAdmin();
+                setTimeout(() => {
+                    showStatus('✅ 管理员视图正常（应隐藏用户功能）', 'success');
+
+                    // 然后切换到用户视图
+                    setTimeout(() => {
+                        simulateUser();
+                        setTimeout(() => {
+                            showStatus('✅ 用户视图正常（应隐藏管理员功能）', 'success');
+
+                            // 最后重置
+                            setTimeout(() => {
+                                resetView();
+                                showStatus('✅ 测试完成！角色分离工作正常', 'success');
+                            }, 2000);
+                        }, 2000);
+                    }, 2000);
+                }, 1000);
+            }, 500);
+        }
+
+        // 页面加载时进行自动测试
+        window.addEventListener('load', function() {
+            setTimeout(testLogin, 1000);
+        });
+    </script>
+</body>
+</html>

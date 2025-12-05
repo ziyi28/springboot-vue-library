@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>借阅功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .primary-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .success-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .warning-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+        .danger-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .info-btn {
+            background-color: #17a2b8;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .record-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .record-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #007bff;
+        }
+        .record-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .record-detail {
+            font-size: 14px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-1 { background: #cce5ff; color: #004085; } /* 借阅中 */
+        .status-2 { background: #d4edda; color: #155724; } /* 已归还 */
+        .status-3 { background: #f8d7da; color: #721c24; } /* 逾期 */
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 借阅功能测试页面</h1>
+
+        <div id="status" class="message info">准备测试借阅功能...</div>
+
+        <!-- 借阅统计 -->
+        <div class="section">
+            <h2>📊 借阅统计</h2>
+            <button class="info-btn" onclick="loadStatistics()">刷新统计</button>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRecords">-</div>
+                    <div class="stat-label">总借阅记录</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="currentBorrows">-</div>
+                    <div class="stat-label">当前借阅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="overdueRecords">-</div>
+                    <div class="stat-label">逾期记录</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalFines">-</div>
+                    <div class="stat-label">总罚金</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 借阅图书 -->
+        <div class="section">
+            <h2>📖 借阅图书</h2>
+            <form id="borrowForm">
+                <div class="form-group">
+                    <label for="userId">用户ID:</label>
+                    <input type="number" id="userId" value="2" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookId">图书ID:</label>
+                    <input type="number" id="bookId" value="1" required>
+                </div>
+                <button type="submit" class="success-btn">借阅图书</button>
+            </form>
+        </div>
+
+        <!-- 归还/续借 -->
+        <div class="section">
+            <h2>🔄 归还/续借操作</h2>
+            <div class="form-group">
+                <label for="recordId">借阅记录ID:</label>
+                <input type="number" id="recordId" placeholder="输入借阅记录ID">
+            </div>
+            <button class="primary-btn" onclick="returnBook()">归还图书</button>
+            <button class="warning-btn" onclick="renewBook()">续借图书</button>
+        </div>
+
+        <!-- 查看借阅记录 -->
+        <div class="section">
+            <h2>📋 查看借阅记录</h2>
+            <div class="form-group">
+                <label for="userIdView">用户ID:</label>
+                <input type="number" id="userIdView" value="2">
+            </div>
+            <button class="info-btn" onclick="loadUserRecords()">查看用户借阅记录</button>
+            <button class="info-btn" onclick="loadCurrentBorrows()">查看当前借阅</button>
+        </div>
+
+        <!-- 记录显示区域 -->
+        <div class="section">
+            <h2>📖 借阅记录列表</h2>
+            <div id="recordsList"></div>
+        </div>
+
+        <!-- 日志区域 -->
+        <div class="section">
+            <h2>📝 操作日志</h2>
+            <button class="primary-btn" onclick="clearLog()">清空日志</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function showMessage(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `message ${type}`;
+            statusDiv.textContent = message;
+            log(`显示消息: [${type}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('日志已清空');
+        }
+
+        async function loadStatistics() {
+            try {
+                log('加载借阅统计...');
+                const response = await fetch(`${API_BASE_URL}/borrow-records/statistics`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.data;
+                    document.getElementById('totalRecords').textContent = stats.totalRecords;
+                    document.getElementById('currentBorrows').textContent = stats.currentBorrows;
+                    document.getElementById('overdueRecords').textContent = stats.overdueRecords;
+                    document.getElementById('totalFines').textContent = '¥' + stats.totalFines.toFixed(2);
+
+                    showMessage('借阅统计加载成功', 'success');
+                    log(`统计信息: ${JSON.stringify(stats, null, 2)}`);
+                } else {
+                    showMessage('加载统计失败: ' + data.message, 'error');
+                }
+            } catch (error) {
+                log('加载统计错误: ' + error.message);
+                showMessage('加载统计失败: ' + error.message, 'error');
+            }
+        }
+
+        async function borrowBook() {
+            const userId = document.getElementById('userId').value;
+            const bookId = document.getElementById('bookId').value;
+
+            if (!userId || !bookId) {
+                showMessage('请填写用户ID和图书ID', 'warning');
+                return;
+            }
+
+            try {
+                log(`开始借阅: 用户ID=${userId}, 图书ID=${bookId}`);
+                showMessage('正在借阅图书...', 'info');
+
+                const response = await fetch(`${API_BASE_URL}/borrow-records/borrow?userId=${userId}&bookId=${bookId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                log(`借阅响应: ${JSON.stringify(data, null, 2)}`);
+
+                if (data.success) {
+                    showMessage('✅ 图书借阅成功！', 'success');
+                    loadStatistics(); // 刷新统计
+                } else {
+                    showMessage('❌ 借阅失败: ' + data.message, 'error');
+                }
+
+            } catch (error) {
+                log('借阅错误: ' + error.message);
+                showMessage('❌ 借阅失败: ' + error.message, 'error');
+            }
+        }
+
+        async function returnBook() {
+            const recordId = document.getElementById('recordId').value;
+
+            if (!recordId) {
+                showMessage('请输入借阅记录ID', 'warning');
+                return;
+            }
+
+            try {
+                log(`开始归还: 记录ID=${recordId}`);
+                showMessage('正在归还图书...', 'info');
+
+                const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/return`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                log(`归还响应: ${JSON.stringify(data, null, 2)}`);
+
+                if (data.success) {
+                    showMessage('✅ 图书归还成功！', 'success');
+                    loadStatistics(); // 刷新统计
+                    loadUserRecords(); // 刷新记录列表
+                } else {
+                    showMessage('❌ 归还失败: ' + data.message, 'error');
+                }
+
+            } catch (error) {
+                log('归还错误: ' + error.message);
+                showMessage('❌ 归还失败: ' + error.message, 'error');
+            }
+        }
+
+        async function renewBook() {
+            const recordId = document.getElementById('recordId').value;
+
+            if (!recordId) {
+                showMessage('请输入借阅记录ID', 'warning');
+                return;
+            }
+
+            try {
+                log(`开始续借: 记录ID=${recordId}`);
+                showMessage('正在续借图书...', 'info');
+
+                const response = await fetch(`${API_BASE_URL}/borrow-records/${recordId}/renew`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                log(`续借响应: ${JSON.stringify(data, null, 2)}`);
+
+                if (data.success) {
+                    showMessage('✅ 图书续借成功！', 'success');
+                    loadUserRecords(); // 刷新记录列表
+                } else {
+                    showMessage('❌ 续借失败: ' + data.message, 'error');
+                }
+
+            } catch (error) {
+                log('续借错误: ' + error.message);
+                showMessage('❌ 续借失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadUserRecords() {
+            const userId = document.getElementById('userIdView').value;
+
+            if (!userId) {
+                showMessage('请输入用户ID', 'warning');
+                return;
+            }
+
+            try {
+                log(`加载用户借阅记录: 用户ID=${userId}`);
+                const response = await fetch(`${API_BASE_URL}/borrow-records/user/${userId}?page=0&size=20`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayRecords(data.data.content);
+                    showMessage(`用户 ${userId} 的借阅记录加载成功`, 'success');
+                } else {
+                    showMessage('加载借阅记录失败: ' + data.message, 'error');
+                }
+
+            } catch (error) {
+                log('加载记录错误: ' + error.message);
+                showMessage('加载借阅记录失败: ' + error.message, 'error');
+            }
+        }
+
+        async function loadCurrentBorrows() {
+            const userId = document.getElementById('userIdView').value;
+
+            if (!userId) {
+                showMessage('请输入用户ID', 'warning');
+                return;
+            }
+
+            try {
+                log(`加载用户当前借阅: 用户ID=${userId}`);
+                const response = await fetch(`${API_BASE_URL}/borrow-records/user/${userId}/current`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayRecords(data.data);
+                    showMessage(`用户 ${userId} 的当前借阅加载成功`, 'success');
+                } else {
+                    showMessage('加载当前借阅失败: ' + data.message, 'error');
+                }
+
+            } catch (error) {
+                log('加载当前借阅错误: ' + error.message);
+                showMessage('加载当前借阅失败: ' + error.message, 'error');
+            }
+        }
+
+        function displayRecords(records) {
+            const recordsList = document.getElementById('recordsList');
+
+            if (!records || records.length === 0) {
+                recordsList.innerHTML = '<p style="color: #666;">暂无借阅记录</p>';
+                return;
+            }
+
+            let html = '';
+            records.forEach(record => {
+                const statusClass = `status-${record.status}`;
+                const statusText = getStatusText(record.status);
+
+                html += `
+                    <div class="record-item">
+                        <div class="record-header">
+                            借阅记录 #${record.id}
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="record-details">
+                            <div class="record-detail"><strong>用户:</strong> ${record.user ? record.user.realName || record.user.username : '未知'}</div>
+                            <div class="record-detail"><strong>图书:</strong> ${record.book ? record.book.title : '未知'}</div>
+                            <div class="record-detail"><strong>借阅日期:</strong> ${new Date(record.borrowDate).toLocaleString()}</div>
+                            <div class="record-detail"><strong>应还日期:</strong> ${new Date(record.dueDate).toLocaleString()}</div>
+                            ${record.returnDate ? `<div class="record-detail"><strong>归还日期:</strong> ${new Date(record.returnDate).toLocaleString()}</div>` : ''}
+                            <div class="record-detail"><strong>续借次数:</strong> ${record.renewCount || 0}</div>
+                            <div class="record-detail"><strong>罚金:</strong> ¥${(record.fineAmount || 0).toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            recordsList.innerHTML = html;
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 1: return '借阅中';
+                case 2: return '已归还';
+                case 3: return '逾期';
+                default: return '未知';
+            }
+        }
+
+        // 绑定表单事件
+        document.getElementById('borrowForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            borrowBook();
+        });
+
+        // 页面加载时自动加载统计
+        window.addEventListener('load', function() {
+            log('页面加载完成，开始加载借阅统计');
+            loadStatistics();
+            showMessage('借阅功能测试页面已准备就绪', 'info');
+        });
+    </script>
+</body>
+</html>

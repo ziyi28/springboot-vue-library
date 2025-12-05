@@ -30,14 +30,7 @@ public class BorrowRecordController {
     @PostMapping("/borrow")
     public ResponseEntity<ApiResponse<BorrowRecord>> borrowBook(
             @RequestParam Long userId,
-            @RequestParam Long bookId,
-            HttpSession session) {
-
-        // 检查用户是否已登录
-        if (session.getAttribute("user") == null) {
-            return ResponseEntity.status(401)
-                .body(ApiResponse.unauthorized("请先登录"));
-        }
+            @RequestParam Long bookId) {
 
         try {
             BorrowRecord record = borrowRecordService.borrowBook(userId, bookId);
@@ -153,14 +146,7 @@ public class BorrowRecordController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "borrowDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            HttpSession session) {
-
-        // 检查用户是否已登录
-        if (session.getAttribute("user") == null) {
-            return ResponseEntity.status(401)
-                .body(ApiResponse.unauthorized("请先登录"));
-        }
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
         try {
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ?

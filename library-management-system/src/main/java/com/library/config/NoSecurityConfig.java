@@ -9,8 +9,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  * 无安全配置
  * 暂时禁用所有安全功能，确保基本功能可用
  */
-// @Configuration
-// @EnableWebSecurity
+@Configuration
+@EnableWebSecurity
 public class NoSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override

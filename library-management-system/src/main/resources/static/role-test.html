@@ -225,25 +225,27 @@
                 `;
 
                 // 根据角色显示/隐藏侧边栏项目
-                adminItems.forEach(item => {
-                    if (userRole === 'admin' || userRole === 'ADMIN') {
+                if (userRole === 'admin' || userRole === 'ADMIN') {
+                    // 管理员：显示管理员功能，隐藏普通用户功能
+                    adminItems.forEach(item => {
                         item.classList.remove('hidden');
                         console.log('显示管理员项目:', item.textContent);
-                    } else {
-                        item.classList.add('hidden');
-                        console.log('隐藏管理员项目:', item.textContent);
-                    }
-                });
-
-                userItems.forEach(item => {
-                    if (userRole === 'user' || userRole === 'USER') {
-                        item.classList.remove('hidden');
-                        console.log('显示用户项目:', item.textContent);
-                    } else {
+                    });
+                    userItems.forEach(item => {
                         item.classList.add('hidden');
                         console.log('隐藏用户项目:', item.textContent);
-                    }
-                });
+                    });
+                } else if (userRole === 'user' || userRole === 'USER') {
+                    // 普通用户：隐藏管理员功能，显示普通用户功能
+                    adminItems.forEach(item => {
+                        item.classList.add('hidden');
+                        console.log('隐藏管理员项目:', item.textContent);
+                    });
+                    userItems.forEach(item => {
+                        item.classList.remove('hidden');
+                        console.log('显示用户项目:', item.textContent);
+                    });
+                }
 
                 showMessage(`✅ 登录成功！当前角色：${userRole === 'admin' ? '管理员' : '普通用户'}`, 'success');
             } else {
