@@ -35,12 +35,11 @@
                 </form>
 
                 <div class="login-footer">
-                    <p>还没有账号？<a href="#" onclick="showRegisterForm()">立即注册</a></p>
+                    <p id="registerLink" style="display: none;">还没有账号？<a href="#" onclick="showRegisterForm()">立即注册</a></p>
                     <div class="demo-accounts">
                         <p><small>演示账户：</small></p>
                         <p><small>管理员：admin / admin123</small></p>
-                        <p><small>图书管理员：librarian / admin123</small></p>
-                        <p><small>普通用户：student1 / 123456</small></p>
+                        <p><small>普通用户：user / 123456</small></p>
                     </div>
                 </div>
             </div>
@@ -131,7 +130,7 @@
                         用户管理
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" id="navBookManagement" style="display: none;">
                     <a href="#books" class="nav-link">
                         <i class="fas fa-book-open"></i>
                         图书管理
@@ -170,10 +169,16 @@
             <div class="sidebar-section">
                 <h3><i class="fas fa-tachometer-alt"></i> 快速操作</h3>
                 <ul class="sidebar-menu">
-                    <li><a href="#" onclick="showUserRegistration()"><i class="fas fa-user-plus"></i> 用户注册</a></li>
-                    <li><a href="#" onclick="showUserList()"><i class="fas fa-list"></i> 用户列表</a></li>
-                    <li><a href="#" onclick="showAddBook()"><i class="fas fa-plus"></i> 添加图书</a></li>
-                    <li><a href="#" onclick="showBookList()"><i class="fas fa-book"></i> 图书列表</a></li>
+                    <!-- 管理员专用功能 -->
+                    <li id="sidebarUserRegistration" style="display: none;"><a href="#" onclick="showUserRegistration()"><i class="fas fa-user-plus"></i> 用户注册</a></li>
+                    <li id="sidebarUserList" style="display: none;"><a href="#" onclick="showUserList()"><i class="fas fa-list"></i> 用户列表</a></li>
+                    <li id="sidebarAddBook" style="display: none;"><a href="#" onclick="showAddBook()"><i class="fas fa-plus"></i> 添加图书</a></li>
+                    <li id="sidebarBookList" style="display: none;"><a href="#" onclick="showBookList()"><i class="fas fa-book"></i> 图书列表</a></li>
+
+                    <!-- 普通用户功能 -->
+                    <li id="sidebarBrowseBooks" style="display: block;"><a href="#" onclick="showBookList()"><i class="fas fa-book-open"></i> 浏览图书</a></li>
+                    <li id="sidebarMyFavorites" style="display: block;"><a href="#" onclick="showMyFavorites()"><i class="fas fa-heart"></i> 我的收藏</a></li>
+                    <li id="sidebarBorrowHistory" style="display: block;"><a href="#" onclick="showBorrowHistory()"><i class="fas fa-history"></i> 借阅历史</a></li>
                 </ul>
             </div>
 
@@ -214,7 +219,7 @@
                 </div>
 
                 <div class="dashboard-grid">
-                    <div class="dashboard-card">
+                    <div class="dashboard-card" id="dashboardUserManagement" style="display: none;">
                         <div class="card-icon blue">
                             <i class="fas fa-users"></i>
                         </div>
@@ -227,7 +232,7 @@
                         </div>
                     </div>
 
-                    <div class="dashboard-card">
+                    <div class="dashboard-card" id="dashboardBookManagement" style="display: none;">
                         <div class="card-icon green">
                             <i class="fas fa-book-open"></i>
                         </div>

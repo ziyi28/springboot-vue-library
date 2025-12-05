@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录调试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .debug {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .test-buttons {
+            margin: 20px 0;
+        }
+        .test-buttons button {
+            width: auto;
+            margin: 5px;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 登录功能调试页面</h1>
+
+        <div class="step">
+            <h3>步骤1: 检查系统状态</h3>
+            <button onclick="checkSystemStatus()">检查系统状态</button>
+            <div id="systemStatus" class="debug" style="display: none;"></div>
+        </div>
+
+        <div class="step">
+            <h3>步骤2: 测试登录API</h3>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名:</label>
+                    <input type="text" id="username" name="username" value="admin" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码:</label>
+                    <input type="password" id="password" name="password" value="admin123" required>
+                </div>
+                <button type="submit">登录测试</button>
+            </form>
+            <div id="loginResult" class="debug" style="display: none;"></div>
+        </div>
+
+        <div class="step">
+            <h3>步骤3: 快速测试不同账号</h3>
+            <div class="test-buttons">
+                <button onclick="testLogin('admin', 'admin123')">测试管理员</button>
+                <button onclick="testLogin('user', '123456')">测试普通用户</button>
+                <button onclick="testLogin('wrong', 'wrong')">测试错误账号</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤4: 测试账号信息</h3>
+            <div class="message info">
+                <strong>管理员账号:</strong> admin / admin123<br>
+                <strong>普通用户账号:</strong> user / 123456
+            </div>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/auth';
+        const TEST_API_BASE = '/api/test';
+
+        function log(message, elementId) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.style.display = 'block';
+            element.textContent += `[${timestamp}] ${message}\n`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog(elementId) {
+            const element = document.getElementById(elementId);
+            element.textContent = '';
+            element.style.display = 'none';
+        }
+
+        function showMessage(message, type) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+
+            // 3秒后自动移除消息
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // 检查系统状态
+        function checkSystemStatus() {
+            clearLog('systemStatus');
+            log('开始检查系统状态...', 'systemStatus');
+
+            fetch(`${TEST_API_BASE}/status`)
+                .then(response => {
+                    log(`收到响应: ${response.status} ${response.statusText}`, 'systemStatus');
+                    return response.json();
+                })
+                .then(data => {
+                    log(`响应数据: ${JSON.stringify(data, null, 2)}`, 'systemStatus');
+                    if (data.success) {
+                        showMessage('✅ 系统状态正常！', 'success');
+                    } else {
+                        showMessage(`❌ 系统状态异常: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    log(`错误: ${error.message}`, 'systemStatus');
+                    showMessage(`❌ 系统状态检查失败: ${error.message}`, 'error');
+                });
+        }
+
+        // 测试登录
+        function testLogin(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+
+            const formData = {
+                username: username,
+                password: password
+            };
+
+            clearLog('loginResult');
+            log(`开始登录测试...`, 'loginResult');
+            log(`用户名: ${username}`, 'loginResult');
+            log(`API地址: ${API_BASE}/login`, 'loginResult');
+
+            fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                log(`收到响应: ${response.status} ${response.statusText}`, 'loginResult');
+                log(`响应头: ${JSON.stringify([...response.headers.entries()])}`, 'loginResult');
+                return response.json();
+            })
+            .then(data => {
+                log(`响应数据: ${JSON.stringify(data, null, 2)}`, 'loginResult');
+                if (data.success) {
+                    const userType = data.userType || data.role;
+                    const userName = data.user ? data.user.realName : data.username;
+                    showMessage(`✅ 登录成功！角色: ${userType}, 用户: ${userName}`, 'success');
+                } else {
+                    showMessage(`❌ 登录失败: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                log(`网络错误: ${error.message}`, 'loginResult');
+                log(`错误堆栈: ${error.stack}`, 'loginResult');
+                showMessage(`❌ 登录请求失败: ${error.message}`, 'error');
+            });
+        }
+
+        // 表单提交处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            testLogin(username, password);
+        });
+
+        // 页面加载时自动检查系统状态
+        window.addEventListener('load', function() {
+            log('页面加载完成', 'systemStatus');
+            checkSystemStatus();
+        });
+    </script>
+</body>
+</html>

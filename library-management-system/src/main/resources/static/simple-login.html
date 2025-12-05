@@ -90,7 +90,7 @@
     </div>
 
     <script>
-        const API_BASE = '/api/basic-auth';
+        const API_BASE = '/api/auth';
         const TEST_API_BASE = '/api/test';
 
         // 检查系统状态
@@ -144,7 +144,9 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showMessage(`✅ 登录成功！角色: ${data.role}, 用户: ${data.user.realName}`, 'success');
+                    const userType = data.userType || data.role;
+                    const userName = data.user ? data.user.realName : data.username;
+                    showMessage(`✅ 登录成功！角色: ${userType}, 用户: ${userName}`, 'success');
                     console.log('登录成功:', data);
                 } else {
                     showMessage(`❌ 登录失败: ${data.message}`, 'error');

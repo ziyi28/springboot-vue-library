@@ -100,6 +100,32 @@ function updateNavigationForRole(role) {
 
 // 显示管理员界面
 function showAdminInterface() {
+    console.log('显示管理员界面');
+
+    // 显示管理员专用功能
+    document.getElementById('usersNavItem').style.display = 'block';
+    document.getElementById('navUserManagement').style.display = 'block';
+    document.getElementById('navBookManagement').style.display = 'block';
+    document.getElementById('adminNavItem').style.display = 'block';
+
+    // 显示侧边栏管理功能
+    document.getElementById('sidebarUserRegistration').style.display = 'block';
+    document.getElementById('sidebarUserList').style.display = 'block';
+    document.getElementById('sidebarAddBook').style.display = 'block';
+    document.getElementById('sidebarBookList').style.display = 'block';
+
+    // 隐藏普通用户专用功能
+    document.getElementById('sidebarBrowseBooks').style.display = 'none';
+    document.getElementById('sidebarMyFavorites').style.display = 'none';
+    document.getElementById('sidebarBorrowHistory').style.display = 'none';
+
+    // 显示仪表盘管理功能卡片
+    document.getElementById('dashboardUserManagement').style.display = 'block';
+    document.getElementById('dashboardBookManagement').style.display = 'block';
+
+    // 显示注册链接（仅管理员可见）
+    document.getElementById('registerLink').style.display = 'block';
+
     // 默认显示管理员功能区域
     setTimeout(() => {
         // 隐藏所有内容区域
@@ -112,14 +138,13 @@ function showAdminInterface() {
             item.classList.remove('active');
         });
 
-        // 显示管理员功能区域
-        const adminNavItem = document.getElementById('adminNavItem');
-        const adminSection = document.getElementById('admin');
+        // 显示仪表盘作为管理员的主界面
+        const dashboardNavItem = document.querySelector('a[href="#dashboard"]').parentElement;
+        const dashboardSection = document.getElementById('dashboard');
 
-        if (adminNavItem && adminSection) {
-            adminNavItem.style.display = 'block';
-            adminNavItem.classList.add('active');
-            adminSection.classList.add('active');
+        if (dashboardNavItem && dashboardSection) {
+            dashboardNavItem.classList.add('active');
+            dashboardSection.classList.add('active');
 
             // 加载管理员统计数据
             loadStatistics();
@@ -129,6 +154,32 @@ function showAdminInterface() {
 
 // 显示普通用户界面
 function showUserInterface() {
+    console.log('显示普通用户界面');
+
+    // 隐藏管理员专用功能
+    document.getElementById('usersNavItem').style.display = 'none';
+    document.getElementById('navUserManagement').style.display = 'none';
+    document.getElementById('navBookManagement').style.display = 'none';
+    document.getElementById('adminNavItem').style.display = 'none';
+
+    // 隐藏侧边栏管理功能
+    document.getElementById('sidebarUserRegistration').style.display = 'none';
+    document.getElementById('sidebarUserList').style.display = 'none';
+    document.getElementById('sidebarAddBook').style.display = 'none';
+    document.getElementById('sidebarBookList').style.display = 'none';
+
+    // 显示普通用户专用功能
+    document.getElementById('sidebarBrowseBooks').style.display = 'block';
+    document.getElementById('sidebarMyFavorites').style.display = 'block';
+    document.getElementById('sidebarBorrowHistory').style.display = 'block';
+
+    // 隐藏仪表盘管理功能卡片
+    document.getElementById('dashboardUserManagement').style.display = 'none';
+    document.getElementById('dashboardBookManagement').style.display = 'none';
+
+    // 确保注册链接隐藏
+    document.getElementById('registerLink').style.display = 'none';
+
     // 默认显示图书列表区域
     setTimeout(() => {
         // 隐藏所有内容区域
@@ -141,16 +192,16 @@ function showUserInterface() {
             item.classList.remove('active');
         });
 
-        // 显示图书列表作为用户的主界面
-        const booksNavItem = document.querySelector('a[href="#books"]').parentElement;
-        const booksSection = document.getElementById('books');
+        // 显示仪表盘作为用户的主界面，但不显示管理功能
+        const dashboardNavItem = document.querySelector('a[href="#dashboard"]').parentElement;
+        const dashboardSection = document.getElementById('dashboard');
 
-        if (booksNavItem && booksSection) {
-            booksNavItem.classList.add('active');
-            booksSection.classList.add('active');
+        if (dashboardNavItem && dashboardSection) {
+            dashboardNavItem.classList.add('active');
+            dashboardSection.classList.add('active');
 
-            // 加载图书列表
-            loadBookList();
+            // 加载用户统计数据
+            loadStatistics();
         }
     }, 100);
 }

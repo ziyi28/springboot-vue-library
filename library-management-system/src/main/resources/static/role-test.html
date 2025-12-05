@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色侧边栏测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2c3e50;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding-top: 60px;
+            color: white;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            padding-top: 80px;
+        }
+        .nav-item {
+            padding: 15px;
+            border-bottom: 1px solid #34495e;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+        .nav-item.admin-only {
+            background-color: #e74c3c;
+        }
+        .nav-item.user-only {
+            background-color: #27ae60;
+        }
+        .nav-item.hidden {
+            display: none;
+        }
+        .login-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .user-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-buttons button {
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 16px;
+        }
+        .admin-btn {
+            background-color: #e74c3c;
+        }
+        .user-btn {
+            background-color: #27ae60;
+        }
+        .logout-btn {
+            background-color: #95a5a6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 角色侧边栏功能测试</h1>
+        <p>测试不同角色登录后的侧边栏显示效果</p>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="nav-item">📚 图书搜索</div>
+        <div class="nav-item admin-only" id="user-management">👥 用户注册</div>
+        <div class="nav-item admin-only" id="book-management">📖 图书管理</div>
+        <div class="nav-item admin-only" id="category-management">📂 分类管理</div>
+        <div class="nav-item admin-only" id="borrow-management">📋 借阅管理</div>
+        <div class="nav-item user-only" id="user-profile">👤 个人中心</div>
+        <div class="nav-item user-only" id="borrow-history">📚 借阅历史</div>
+        <div class="nav-item user-only" id="favorites">❤️ 我的收藏</div>
+        <div class="nav-item">⚙️ 系统设置</div>
+        <div class="nav-item" onclick="logout()">🚪 退出登录</div>
+    </div>
+
+    <div class="content">
+        <div class="login-section" id="loginSection">
+            <h2>登录测试</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">登录</button>
+            </form>
+
+            <div class="test-buttons">
+                <h3>快速测试账号：</h3>
+                <button class="admin-btn" onclick="quickLogin('admin', 'admin123')">管理员登录</button>
+                <button class="user-btn" onclick="quickLogin('user', '123456')">普通用户登录</button>
+                <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+
+        <div class="user-info" id="userInfo" style="display: none;">
+            <h2>当前用户信息</h2>
+            <div id="userDetails"></div>
+        </div>
+
+        <div id="status"></div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3>测试说明：</h3>
+            <ul>
+                <li><strong>红色项目</strong>：仅管理员可见（用户注册、图书管理、分类管理、借阅管理）</li>
+                <li><strong>绿色项目</strong>：仅普通用户可见（个人中心、借阅历史、我的收藏）</li>
+                <li><strong>默认项目</strong>：所有角色可见（图书搜索、系统设置、退出登录）</li>
+            </ul>
+            <p><strong>测试账号：</strong></p>
+            <ul>
+                <li>管理员：admin / admin123</li>
+                <li>普通用户：user / 123456</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/auth';
+        let currentUser = null;
+        let userRole = null;
+        let authToken = null;
+
+        // 显示消息
+        function showMessage(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // 更新侧边栏显示
+        function updateSidebar() {
+            const adminItems = document.querySelectorAll('.admin-only');
+            const userItems = document.querySelectorAll('.user-only');
+            const loginSection = document.getElementById('loginSection');
+            const userInfo = document.getElementById('userInfo');
+
+            if (currentUser && userRole) {
+                loginSection.style.display = 'none';
+                userInfo.style.display = 'block';
+
+                // 显示用户信息
+                document.getElementById('userDetails').innerHTML = `
+                    <p><strong>用户名：</strong>${currentUser}</p>
+                    <p><strong>角色：</strong>${userRole === 'admin' ? '管理员' : '普通用户'}</p>
+                    <p><strong>Token：</strong>${authToken ? '已获取' : '未获取'}</p>
+                `;
+
+                // 根据角色显示/隐藏侧边栏项目
+                adminItems.forEach(item => {
+                    if (userRole === 'admin' || userRole === 'ADMIN') {
+                        item.classList.remove('hidden');
+                        console.log('显示管理员项目:', item.textContent);
+                    } else {
+                        item.classList.add('hidden');
+                        console.log('隐藏管理员项目:', item.textContent);
+                    }
+                });
+
+                userItems.forEach(item => {
+                    if (userRole === 'user' || userRole === 'USER') {
+                        item.classList.remove('hidden');
+                        console.log('显示用户项目:', item.textContent);
+                    } else {
+                        item.classList.add('hidden');
+                        console.log('隐藏用户项目:', item.textContent);
+                    }
+                });
+
+                showMessage(`✅ 登录成功！当前角色：${userRole === 'admin' ? '管理员' : '普通用户'}`, 'success');
+            } else {
+                loginSection.style.display = 'block';
+                userInfo.style.display = 'none';
+
+                // 隐藏所有角色特定项目
+                adminItems.forEach(item => item.classList.add('hidden'));
+                userItems.forEach(item => item.classList.add('hidden'));
+
+                showMessage('请先登录', 'info');
+            }
+        }
+
+        // 快速登录
+        function quickLogin(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+        }
+
+        // 登录处理
+        function login(username, password) {
+            showMessage('正在登录...', 'info');
+
+            fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('登录响应:', data);
+
+                if (data.success) {
+                    // 提取用户信息
+                    currentUser = data.user ? data.user.username : username;
+                    authToken = data.sessionId || data.token;
+
+                    // 处理角色信息 - 支持多种格式
+                    userRole = data.userType || data.user?.role || data.role;
+
+                    console.log('用户信息:', { currentUser, userRole, authToken });
+
+                    // 存储到localStorage
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('currentUser', currentUser);
+                    localStorage.setItem('userRole', userRole);
+
+                    updateSidebar();
+                } else {
+                    showMessage(`❌ 登录失败: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('登录错误:', error);
+                showMessage(`❌ 登录请求失败: ${error.message}`, 'error');
+            });
+        }
+
+        // 退出登录
+        function logout() {
+            currentUser = null;
+            userRole = null;
+            authToken = null;
+
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('userRole');
+
+            updateSidebar();
+            showMessage('已退出登录', 'info');
+        }
+
+        // 表单提交处理
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            login(username, password);
+        });
+
+        // 页面加载时检查本地存储
+        window.addEventListener('load', function() {
+            const storedToken = localStorage.getItem('authToken');
+            const storedUser = localStorage.getItem('currentUser');
+            const storedRole = localStorage.getItem('userRole');
+
+            if (storedToken && storedUser && storedRole) {
+                currentUser = storedUser;
+                userRole = storedRole;
+                authToken = storedToken;
+                updateSidebar();
+            } else {
+                updateSidebar();
+            }
+        });
+    </script>
+</body>
+</html>

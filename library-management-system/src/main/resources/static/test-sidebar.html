@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>侧边栏角色测试页面</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .sidebar-preview {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .sidebar-preview ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar-preview li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .hidden {
+            color: #999;
+            text-decoration: line-through;
+        }
+        .visible {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 侧边栏角色功能测试页面</h1>
+        <p>此页面用于测试不同角色的侧边栏显示功能</p>
+
+        <div class="test-section">
+            <h3>登录测试</h3>
+            <div>
+                <button onclick="testAdminLogin()">管理员登录 (admin/admin123)</button>
+                <button onclick="testUserLogin()">普通用户登录 (user/123456)</button>
+                <button onclick="testLogout()">登出</button>
+            </div>
+            <div id="loginResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>当前角色状态</h3>
+            <div id="roleStatus" class="result">未登录</div>
+            <button onclick="checkCurrentRole()">检查当前角色</button>
+        </div>
+
+        <div class="test-section">
+            <h3>侧边栏预览</h3>
+            <div class="sidebar-preview">
+                <h4>快速操作菜单：</h4>
+                <ul>
+                    <li id="previewUserRegistration" class="hidden">👤 用户注册</li>
+                    <li id="previewUserList" class="hidden">📋 用户列表</li>
+                    <li id="previewAddBook" class="hidden">➕ 添加图书</li>
+                    <li id="previewBookList" class="hidden">📚 图书列表</li>
+                    <li id="previewBrowseBooks" class="visible">📖 浏览图书</li>
+                    <li id="previewMyFavorites" class="visible">❤️ 我的收藏</li>
+                    <li id="previewBorrowHistory" class="visible">📚 借阅历史</li>
+                </ul>
+            </div>
+            <button onclick="updateSidebarPreview()">更新侧边栏预览</button>
+        </div>
+
+        <div class="test-section">
+            <h3>手动角色切换测试</h3>
+            <div>
+                <button onclick="simulateAdminView()">模拟管理员视图</button>
+                <button onclick="simulateUserView()">模拟普通用户视图</button>
+                <button onclick="simulateLogoutView()">模拟登出视图</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8082/api';
+        let currentUser = null;
+        let userRole = null;
+
+        // 显示结果
+        function showResult(message, isError = false, elementId = 'loginResult') {
+            const resultDiv = document.getElementById(elementId);
+            resultDiv.className = isError ? 'result error' : 'result success';
+            resultDiv.textContent = message;
+        }
+
+        // 管理员登录
+        async function testAdminLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                console.log('管理员登录响应:', data);
+
+                if (response.ok && data.success) {
+                    currentUser = data.user.username;
+                    userRole = data.userType;
+                    showResult(`管理员登录成功！\n用户: ${currentUser}\n角色: ${userRole}\nSession: ${data.sessionId}`, false);
+                    updateSidebarPreview();
+                    checkCurrentRole();
+                } else {
+                    showResult(`管理员登录失败: ${data.message}`, true);
+                }
+            } catch (error) {
+                console.error('管理员登录错误:', error);
+                showResult(`管理员登录失败: ${error.message}`, true);
+            }
+        }
+
+        // 普通用户登录
+        async function testUserLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'user',
+                        password: '123456'
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                console.log('普通用户登录响应:', data);
+
+                if (response.ok && data.success) {
+                    currentUser = data.user.username;
+                    userRole = data.userType;
+                    showResult(`普通用户登录成功！\n用户: ${currentUser}\n角色: ${userRole}\nSession: ${data.sessionId}`, false);
+                    updateSidebarPreview();
+                    checkCurrentRole();
+                } else {
+                    showResult(`普通用户登录失败: ${data.message}`, true);
+                }
+            } catch (error) {
+                console.error('普通用户登录错误:', error);
+                showResult(`普通用户登录失败: ${error.message}`, true);
+            }
+        }
+
+        // 登出
+        async function testLogout() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                currentUser = null;
+                userRole = null;
+                showResult(`登出成功！\n${data.message}`, false);
+                updateSidebarPreview();
+                checkCurrentRole();
+            } catch (error) {
+                console.error('登出错误:', error);
+                showResult(`登出失败: ${error.message}`, true);
+            }
+        }
+
+        // 更新侧边栏预览
+        function updateSidebarPreview() {
+            const items = [
+                { id: 'previewUserRegistration', adminVisible: true, userVisible: false },
+                { id: 'previewUserList', adminVisible: true, userVisible: false },
+                { id: 'previewAddBook', adminVisible: true, userVisible: false },
+                { id: 'previewBookList', adminVisible: true, userVisible: false },
+                { id: 'previewBrowseBooks', adminVisible: false, userVisible: true },
+                { id: 'previewMyFavorites', adminVisible: false, userVisible: true },
+                { id: 'previewBorrowHistory', adminVisible: false, userVisible: true }
+            ];
+
+            items.forEach(item => {
+                const element = document.getElementById(item.id);
+                if (!element) return;
+
+                let shouldBeVisible = false;
+                if (userRole === 'admin' && item.adminVisible) {
+                    shouldBeVisible = true;
+                } else if (userRole === 'user' && item.userVisible) {
+                    shouldBeVisible = true;
+                }
+
+                if (shouldBeVisible) {
+                    element.className = 'visible';
+                    element.style.textDecoration = 'none';
+                    element.style.color = '#28a745';
+                } else {
+                    element.className = 'hidden';
+                    element.style.textDecoration = 'line-through';
+                    element.style.color = '#999';
+                }
+            });
+        }
+
+        // 检查当前角色
+        function checkCurrentRole() {
+            if (!currentUser || !userRole) {
+                showResult('当前状态：未登录', false, 'roleStatus');
+            } else {
+                showResult(`当前状态：已登录\n用户：${currentUser}\n角色：${userRole}`, false, 'roleStatus');
+            }
+        }
+
+        // 模拟管理员视图
+        function simulateAdminView() {
+            userRole = 'admin';
+            currentUser = 'admin';
+            updateSidebarPreview();
+            checkCurrentRole();
+            showResult('模拟切换到管理员视图', false, 'loginResult');
+        }
+
+        // 模拟普通用户视图
+        function simulateUserView() {
+            userRole = 'user';
+            currentUser = 'user';
+            updateSidebarPreview();
+            checkCurrentRole();
+            showResult('模拟切换到普通用户视图', false, 'loginResult');
+        }
+
+        // 模拟登出视图
+        function simulateLogoutView() {
+            userRole = null;
+            currentUser = null;
+            updateSidebarPreview();
+            checkCurrentRole();
+            showResult('模拟登出状态', false, 'loginResult');
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            checkCurrentRole();
+            updateSidebarPreview();
+        };
+    </script>
+</body>
+</html>

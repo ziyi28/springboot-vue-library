@@ -10,7 +10,11 @@
       "Bash(taskkill:*)",
       "Bash(rd:*)",
       "Bash(del:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(tskill:*)",
+      "Bash(cmd:*)",
+      "Bash(wmic:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
